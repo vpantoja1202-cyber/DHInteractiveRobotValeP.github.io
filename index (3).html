@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Denavit-Hartenberg Interactivo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Code:wght@300;400;500&display=swap');
+:root{
+  --bg:#f0f4f9;--sur:#fff;--brd:#d0dae8;--brd2:#e4eaf3;
+  --acc:#1a6ef5;--or:#e05a0a;--gr:#0ea96a;--yl:#e09a0a;--pu:#7c3cf5;
+  --tx:#1a2333;--mu:#6b7f99;--lt:#9fb0c8;
+  --sh:0 2px 12px rgba(30,60,120,.08);--sh2:0 6px 28px rgba(30,60,120,.13);
+  --ff:'Syne',sans-serif;--fm:'Fira Code',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:var(--ff)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(240,244,249,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 28px;height:54px;gap:4px}
+.nl{font-weight:800;font-size:15px;letter-spacing:2px;color:var(--acc);margin-right:16px}.nl span{color:var(--or)}
+.nb{background:none;border:none;color:var(--mu);font-family:var(--ff);font-size:13px;font-weight:600;padding:5px 12px;cursor:pointer;border-radius:5px;transition:all .15s}
+.nb:hover{color:var(--tx);background:var(--brd2)}.nb.on{color:var(--acc);background:rgba(26,110,245,.08)}
+
+/* SECTIONS */
+section{min-height:100vh;padding:80px 44px 56px;max-width:1140px;margin:0 auto}
+.stag{font-family:var(--fm);font-size:11px;color:var(--acc);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.sh2{font-size:clamp(28px,5vw,46px);font-weight:800;letter-spacing:-1px;line-height:1;margin-bottom:28px}.sh2 span{color:var(--or)}
+
+/* HERO */
+#hero{display:flex;flex-direction:column;justify-content:center;min-height:100vh;position:relative}
+.hchip{display:inline-flex;align-items:center;background:rgba(26,110,245,.08);border:1px solid rgba(26,110,245,.2);border-radius:20px;padding:5px 14px;font-family:var(--fm);font-size:11px;color:var(--acc);letter-spacing:2px;margin-bottom:20px;animation:fu .5s .1s both}
+.ht{font-size:clamp(44px,8vw,86px);font-weight:800;letter-spacing:-2px;line-height:.92;margin-bottom:18px;animation:fu .5s .25s both}.ht .a1{color:var(--acc)}.ht .a2{color:var(--or)}
+.hs{font-size:17px;color:var(--mu);max-width:560px;line-height:1.6;margin-bottom:36px;animation:fu .5s .4s both}
+.hcards{display:flex;gap:12px;flex-wrap:wrap;animation:fu .5s .55s both}
+.hc{background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:14px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--sh);transition:all .2s}
+.hc:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:var(--sh2)}
+.hc .ico{font-size:20px}.hc .lbl{font-size:13px;font-weight:700}.hc .num{font-family:var(--fm);font-size:10px;color:var(--acc);display:block}
+
+/* THEORY CARDS */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.tc{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:22px;box-shadow:var(--sh)}.tc.full{grid-column:1/-1}
+.tc-bar{height:4px;width:36px;border-radius:2px;margin-bottom:14px}
+.tc-ico{font-size:24px;margin-bottom:10px}.tc-ti{font-size:16px;font-weight:700;margin-bottom:8px}
+.tc-bd{font-size:13px;line-height:1.7;color:var(--mu)}.tc-bd strong{color:var(--tx);font-weight:600}
+.prow{display:flex;gap:12px;padding:9px 13px;background:var(--bg);border-radius:8px;border:1px solid var(--brd2);margin-bottom:8px;align-items:flex-start}
+.pbadge{font-family:var(--fm);font-size:18px;font-weight:700;width:28px;flex-shrink:0}
+.pdesc{font-size:12px;line-height:1.5;color:var(--mu)}.pdesc b{color:var(--tx)}
+
+/* PARAM BADGE TYPES */
+.badge-var{background:rgba(26,110,245,.1);border:1px solid rgba(26,110,245,.3);color:var(--acc);font-family:var(--fm);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge-const{background:rgba(107,127,153,.1);border:1px solid rgba(107,127,153,.3);color:var(--mu);font-family:var(--fm);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.badge-off{background:rgba(224,90,10,.1);border:1px solid rgba(224,90,10,.3);color:var(--or);font-family:var(--fm);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+
+/* INTERACTIVE DIAGRAM */
+.diag-wrap{background:var(--sur);border:1px solid var(--brd);border-radius:12px;overflow:hidden;box-shadow:var(--sh2)}
+.diag-toolbar{background:var(--bg);border-bottom:1px solid var(--brd);padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.diag-toolbar-title{font-size:14px;font-weight:700;flex:1}
+.diag-main{display:grid;grid-template-columns:220px 1fr;min-height:520px}
+.diag-svg-area{position:relative;overflow:hidden;border-right:1px solid var(--brd)}
+#diag-svg{display:block;width:100%;cursor:crosshair}
+.diag-side{padding:12px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;background:var(--bg);max-height:520px}
+.diag-side-title{font-size:12px;font-weight:700;color:var(--mu);letter-spacing:1px;text-transform:uppercase;font-family:var(--fm)}
+
+/* Diagram sliders */
+.dsl{background:var(--sur);border:1px solid var(--brd2);border-radius:8px;padding:9px 11px;border-left:3px solid var(--acc);transition:border-color .15s,box-shadow .15s;cursor:pointer}
+.dsl.active{border-left-color:var(--or);box-shadow:0 0 0 2px rgba(224,90,10,.15)}
+.dsl-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.dsl-name{font-weight:700;font-size:13px}.dsl-val{font-family:var(--fm);font-size:12px;color:var(--acc);background:rgba(26,110,245,.08);padding:2px 6px;border-radius:3px}
+.dsl-lbl{font-size:10px;color:var(--lt);margin-bottom:5px}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--brd);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--acc);border-radius:50%;cursor:pointer;box-shadow:0 0 4px rgba(26,110,245,.4)}
+.dsl-range{display:flex;justify-content:space-between;font-family:var(--fm);font-size:9px;color:var(--lt);margin-top:2px}
+
+/* Info panel (click on joint) */
+.info-panel{background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-top:4px}
+.info-title{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd2);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-key{font-family:var(--fm);font-weight:600;color:var(--mu)}
+.info-val{font-family:var(--fm);font-weight:700}
+
+/* Animation step bar */
+.anim-bar{background:var(--bg);border-top:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.anim-btn{background:var(--sur);border:1px solid var(--brd);color:var(--tx);font-family:var(--ff);font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s}
+.anim-btn:hover{background:var(--brd2)}.anim-btn.on{border-color:var(--acc);color:var(--acc);background:rgba(26,110,245,.10);font-weight:700}
+.anim-steps{display:flex;gap:6px;flex-wrap:wrap}
+.anim-step{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.anim-step:hover{opacity:.8}
+
+/* TABLE SECTION */
+.rtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.rtab{background:var(--sur);border:1px solid var(--brd);color:var(--mu);font-family:var(--ff);font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s}
+.rtab:hover{color:var(--tx);border-color:var(--mu)}.rtab.on{border-color:var(--acc);color:var(--acc);background:rgba(26,110,245,.07)}
+.fkbar{background:var(--sur);border:1px solid var(--brd);border-left:4px solid var(--gr);border-radius:10px;padding:14px 20px;display:flex;gap:24px;flex-wrap:wrap;box-shadow:var(--sh);margin-bottom:18px}
+.fki{display:flex;flex-direction:column;gap:2px}
+.fkk{font-family:var(--fm);font-size:10px;letter-spacing:2px;color:var(--mu)}
+.fkv{font-family:var(--fm);font-size:17px;font-weight:500;color:var(--gr)}
+.fku{font-size:11px;color:var(--lt)}
+.at-wrap{background:var(--sur);border:1px solid var(--brd);border-radius:12px;overflow:hidden;box-shadow:var(--sh2);margin-bottom:24px}
+.at-hd{background:var(--bg);border-bottom:1px solid var(--brd);padding:12px 18px;display:flex;align-items:center;gap:10px}
+.at-hd-ti{font-size:14px;font-weight:700;flex:1}.at-hd-rob{font-family:var(--fm);font-size:12px;color:var(--acc)}
+table.at{width:100%;border-collapse:collapse}
+.at thead tr{background:rgba(26,110,245,.05)}
+.at th{padding:10px 12px;text-align:center;font-size:10px;letter-spacing:2px;color:var(--acc);font-weight:600;border-bottom:2px solid var(--brd)}
+.at td{padding:0;border-bottom:1px solid var(--brd2);vertical-align:top;transition:background .2s}
+.at tr.row-hi td{background:rgba(224,90,10,.06) !important}
+.at tr:last-child td{border-bottom:none}
+.ci{padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.cv{font-family:var(--fm);font-size:14px;font-weight:600;color:var(--tx);text-align:center}
+.ct{font-size:10px;text-align:center;margin-top:2px}
+.cw{font-size:11px;line-height:1.4;color:var(--mu);border-top:1px dashed var(--brd);padding-top:4px;margin-top:3px}
+.jt-c{text-align:center;padding:10px 8px !important}
+.jt-nm{font-weight:800;font-size:15px}.jt-lb{font-size:10px;color:var(--mu)}
+.jt-dot{width:9px;height:9px;border-radius:50%;margin:3px auto 0;display:block}
+.leg{display:flex;gap:16px;padding:10px 18px;border-top:1px solid var(--brd);flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mu)}
+.ld{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* FILL GUIDE */
+.fg-wrap{background:var(--sur);border:1px solid var(--brd);border-radius:12px;overflow:hidden;box-shadow:var(--sh)}
+.fg-hd{background:linear-gradient(135deg,rgba(26,110,245,.07),rgba(224,90,10,.05));border-bottom:1px solid var(--brd);padding:14px 20px}
+.fg-hd-t{font-size:15px;font-weight:700;margin-bottom:2px}
+.fg-hd-s{font-size:12px;color:var(--mu)}
+.fg-bd{padding:20px}
+.fgs{display:flex;gap:14px;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--brd2)}
+.fgs:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.fgs-num{width:30px;height:30px;border-radius:8px;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.fgs-c{flex:1}
+.fgs-t{font-size:14px;font-weight:700;margin-bottom:5px}
+.fgs-tx{font-size:12px;line-height:1.7;color:var(--mu)}.fgs-tx strong{color:var(--tx)}
+.fgs-ex{margin-top:8px;background:var(--bg);border:1px solid var(--brd);border-radius:7px;padding:10px 12px}
+.er{display:flex;gap:8px;margin-bottom:3px;font-size:11px}.er:last-child{margin-bottom:0}
+.ej{font-family:var(--fm);font-weight:700;color:var(--or);min-width:26px}
+.et{color:var(--mu)}.et b{color:var(--tx)}
+
+/* SIMULATOR */
+.sim-lay{display:grid;grid-template-columns:270px 1fr;gap:16px;height:480px}
+.sim-pan{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;box-shadow:var(--sh)}
+.sjt{background:var(--bg);border:1px solid var(--brd2);border-radius:7px;padding:9px 11px;border-left:3px solid var(--acc)}
+.sjhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sjnm{font-weight:700;font-size:12px}.sjv{font-family:var(--fm);font-size:11px;color:var(--acc);background:rgba(26,110,245,.08);padding:2px 6px;border-radius:3px}
+.sjlb{font-size:10px;color:var(--lt);margin-bottom:4px}
+.sjr{display:flex;justify-content:space-between;font-family:var(--fm);font-size:9px;color:var(--lt);margin-top:2px}
+.sim-vp{background:#0c1018;border:1px solid var(--brd);border-radius:12px;position:relative;overflow:hidden;box-shadow:var(--sh2)}
+#sim-canvas{width:100%;height:100%;display:block}
+.shud{position:absolute;top:10px;left:12px;font-family:var(--fm);font-size:11px;line-height:1.9;color:rgba(255,255,255,.45);pointer-events:none}
+.shud .hv{color:#4fdb9a;font-weight:500}
+.sht{position:absolute;bottom:8px;right:10px;font-family:var(--fm);font-size:10px;color:rgba(255,255,255,.25);text-align:right;pointer-events:none}
+.sbtns{display:flex;gap:8px;margin-top:12px}
+.sbtn{background:var(--sur);border:1px solid var(--brd);color:var(--tx);font-family:var(--ff);font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.sbtn:hover{background:var(--bg);border-color:var(--acc);color:var(--acc)}
+.strow{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+footer{text-align:center;padding:32px 32px 24px;color:var(--lt);font-family:var(--fm);font-size:12px;border-top:1px solid var(--brd)}
+.footer-author{display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:rgba(26,110,245,.06);border:1px solid rgba(26,110,245,.15);border-radius:20px;padding:6px 16px;font-size:12px;color:var(--acc);font-weight:600;letter-spacing:.5px}
+
+/* Tooltip */
+.tip{position:fixed;background:#1a2333;color:white;font-family:var(--fm);font-size:12px;padding:10px 14px;border-radius:8px;pointer-events:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:260px;line-height:1.6;display:none}
+.tip.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="tip" id="tip"></div>
+
+<nav>
+  <div class="nl">D<span>—</span>H</div>
+  <button class="nb on" onclick="goTo('hero')">Inicio</button>
+  <button class="nb" onclick="goTo('teoria')">Teoría</button>
+  <button class="nb" onclick="goTo('tabla')">Tabla D-H</button>
+  <button class="nb" onclick="goTo('sim')">Simulador 3D</button>
+  <button class="nb" onclick="goTo('ik')">Cinemática Inversa</button>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+  <div class="hchip">// Robótica · Cinemática Directa</div>
+  <h1 class="ht">Denavit<br><span class="a1">—</span><span class="a2">Hartenberg</span></h1>
+  <div style="font-family:var(--fm);font-size:13px;color:var(--mu);margin-bottom:18px;animation:fu .5s .35s both;letter-spacing:1px">by <strong style="color:var(--acc)">Valeria Pantoja</strong></div>
+  <p class="hs">Método para representar robots con 4 parámetros por junta. Diagrama interactivo, tabla comentada y simulador 3D.</p>
+  <div class="hcards">
+    <div class="hc" onclick="goTo('teoria')"><div class="ico">📐</div><div><span class="num">01</span><span class="lbl">Teoría</span></div></div>
+    <div class="hc" onclick="goTo('tabla')"><div class="ico">📋</div><div><span class="num">02</span><span class="lbl">Tabla D-H</span></div></div>
+    <div class="hc" onclick="goTo('sim')"><div class="ico">🤖</div><div><span class="num">03</span><span class="lbl">Simulador 3D</span></div></div>
+  </div>
+</section>
+
+<!-- ═══ TEORÍA ═══ -->
+<section id="teoria">
+  <div class="stag">// 01 · Fundamentos</div>
+  <h2 class="sh2">¿Qué es el método <span>D-H</span>?</h2>
+  <div class="tgrid">
+    <div class="tc"><div class="tc-bar" style="background:var(--acc)"></div><div class="tc-ico">💡</div><div class="tc-ti">Definición</div><div class="tc-bd">Creado por <strong>Denavit y Hartenberg (1955)</strong>. Asigna un marco de referencia (X,Y,Z) a cada eslabón de un robot usando solo <strong>4 parámetros por junta</strong>.</div></div>
+    <div class="tc"><div class="tc-bar" style="background:var(--or)"></div><div class="tc-ico">🎯</div><div class="tc-ti">¿Para qué sirve?</div><div class="tc-bd">Calcula la <strong>cinemática directa</strong>: dados los ángulos articulares A1…An, devuelve la posición (X,Y,Z) y orientación (A,B,C) del TCP en coordenadas cartesianas.</div></div>
+    <div class="tc"><div class="tc-bar" style="background:var(--gr)"></div><div class="tc-ico">📏</div><div class="tc-ti">Los 4 Parámetros</div>
+      <div class="tc-bd">
+        <div class="prow"><span class="pbadge" style="color:var(--or)">θ</span><div class="pdesc"><b>Theta</b> — Ángulo de rotación sobre el eje Z anterior. <span class="badge-var">▶ variable</span> en juntas rotacionales.</div></div>
+        <div class="prow"><span class="pbadge" style="color:var(--acc)">d</span><div class="pdesc"><b>d</b> — Desplazamiento a lo largo del eje Z anterior. <span class="badge-const">■ constante</span> en rotacionales.</div></div>
+        <div class="prow"><span class="pbadge" style="color:var(--gr)">a</span><div class="pdesc"><b>a</b> — Longitud del eslabón entre ejes Z. <span class="badge-const">■ constante</span> — medida del datasheet.</div></div>
+        <div class="prow"><span class="pbadge" style="color:var(--yl)">α</span><div class="pdesc"><b>Alpha</b> — Torsión entre ejes Z. <span class="badge-const">■ constante</span> — define si los ejes son paralelos (0°) o perpendiculares (±90°).</div></div>
+      </div>
+    </div>
+    <div class="tc"><div class="tc-bar" style="background:var(--yl)"></div><div class="tc-ico">📐</div><div class="tc-ti">Pasos</div>
+      <div class="tc-bd" style="display:flex;flex-direction:column;gap:7px;margin-top:4px">
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;background:var(--acc);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div><div style="font-size:13px;line-height:1.5;color:var(--mu);padding-top:3px">Numerar juntas 1…n, eslabones 0…n.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;background:var(--acc);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div><div style="font-size:13px;line-height:1.5;color:var(--mu);padding-top:3px">Eje <b style="color:var(--tx)">Zᵢ</b> alineado con el eje de junta i+1.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;background:var(--acc);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div><div style="font-size:13px;line-height:1.5;color:var(--mu);padding-top:3px">Eje <b style="color:var(--tx)">Xᵢ</b> a lo largo de la normal común entre Zᵢ₋₁ y Zᵢ.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;background:var(--acc);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div><div style="font-size:13px;line-height:1.5;color:var(--mu);padding-top:3px">Medir θ, d, a, α y llenar la tabla D-H.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:24px;height:24px;background:var(--acc);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">5</div><div style="font-size:13px;line-height:1.5;color:var(--mu);padding-top:3px">Multiplicar matrices: <b style="color:var(--tx)">T₀ⁿ = T₁·T₂·…·Tₙ</b></div></div>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE DIAGRAM CARD -->
+    <div class="tc full"><div class="tc-bar" style="background:var(--or)"></div><div class="tc-ico">🧭</div><div class="tc-ti">Diagrama Interactivo — Marcos X, Y, Z por Junta</div>
+      <div class="tc-bd">
+        <p style="margin-bottom:12px">Mueve los sliders para ver cómo rotan los marcos. <strong>Haz clic en una junta</strong> para ver sus parámetros D-H.</p>
+
+        <!-- Robot tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="rtab on" id="dt-kuka" onclick="diagLoad('kuka',this)">🦾 KUKA KR5</button>
+          <button class="rtab" id="dt-puma" onclick="diagLoad('puma',this)">🏭 PUMA 560</button>
+          <button class="rtab" id="dt-rr" onclick="diagLoad('rr',this)">📐 RR Planar</button>
+        </div>
+
+        <!-- Layout idéntico al simulador 3D -->
+        <div class="sim-lay">
+          <!-- Panel izquierdo: sliders + botones -->
+          <div class="sim-pan">
+            <div style="font-size:10px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:2px">Juntas</div>
+            <div id="diag-sliders"></div>
+            <div style="margin-top:10px;border-top:1px solid var(--brd2);padding-top:10px;display:flex;flex-direction:column;gap:5px">
+              <div style="font-size:10px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:2px">Mostrar</div>
+              <button class="anim-btn on" id="abtn-all"   onclick="animShow('all')"   style="text-align:left">◉ Todos</button>
+              <button class="anim-btn"    id="abtn-theta" onclick="animShow('theta')" style="text-align:left;color:#e09a0a">θ Ángulo de junta</button>
+              <button class="anim-btn"    id="abtn-d"     onclick="animShow('d')"     style="text-align:left;color:#1a6ef5">d Desplazamiento axial</button>
+              <button class="anim-btn"    id="abtn-a"     onclick="animShow('a')"     style="text-align:left;color:#0ea96a">a Longitud eslabón</button>
+              <button class="anim-btn"    id="abtn-alpha" onclick="animShow('alpha')" style="text-align:left;color:#7c3cf5">α Torsión entre ejes</button>
+              <button class="anim-btn"    id="abtn-reset" onclick="animReset()"       style="text-align:left">↺ Reset</button>
+            </div>
+            <!-- info al hacer clic -->
+            <div class="info-panel" id="info-panel" style="display:none;margin-top:10px">
+              <div class="info-title" id="info-title">Junta</div>
+              <div id="info-rows"></div>
+            </div>
+          </div>
+
+          <!-- Panel derecho: 3D canvas -->
+          <div class="sim-vp" style="position:relative">
+            <canvas id="diag-canvas" style="width:100%;height:100%;display:block"></canvas>
+            <!-- Labels HTML superpuestos -->
+            <div id="diag-labels" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden"></div>
+            <!-- HUD -->
+            <div class="shud">
+              <div>X: <span class="hv" id="dx">—</span> mm</div>
+              <div>Y: <span class="hv" id="dy">—</span> mm</div>
+              <div>Z: <span class="hv" id="dz">—</span> mm</div>
+            </div>
+            <div class="sht">Arrastrar: rotar · Scroll: zoom</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MATRIX CARD -->
+    <div class="tc full"><div class="tc-bar" style="background:var(--pu)"></div><div class="tc-ico">🔢</div><div class="tc-ti">Matriz de Transformación D-H — ¿De dónde sale cada dato?</div>
+      <div class="tc-bd">
+
+        <!-- Matrix + annotation layout -->
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;margin-top:12px;flex-wrap:wrap">
+          <!-- Matrix -->
+          <div style="background:var(--bg);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:8px;padding:16px 20px;font-family:var(--fm);font-size:13px;overflow-x:auto;line-height:2.1;min-width:280px">
+            <div style="font-size:10px;color:var(--acc);letter-spacing:2px;margin-bottom:6px">T<sub>i−1→i</sub> =</div>
+            <div style="color:var(--tx);font-size:13.5px;white-space:pre">⎡ cosθ  −sinθ·cosα  <span style="color:#e05a0a">sinθ·sinα</span>  <span style="color:#0ea96a">a·cosθ</span> ⎤
+⎢ sinθ   cosθ·cosα  <span style="color:#e05a0a">−cosθ·sinα</span> <span style="color:#0ea96a">a·sinθ</span> ⎥
+⎢  0       sinα     <span style="color:#7c3cf5">  cosα   </span>    <span style="color:#1a6ef5">  d   </span>  ⎥
+⎣  0         0           0         1   ⎦</div>
+            <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px">
+              <span style="color:#6b7f99">Columnas 1-2: <strong style="color:var(--tx)">Orientación</strong></span>
+              <span style="color:#e05a0a">■ Col 3: eje X del marco</span>
+              <span style="color:#0ea96a">■ Col 4 (xy): posición XY</span>
+              <span style="color:#1a6ef5">■ Col 4 (z): posición Z</span>
+            </div>
+          </div>
+
+          <!-- Explanation boxes -->
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:rgba(14,169,106,.07);border:1px solid rgba(14,169,106,.25);border-left:3px solid #0ea96a;border-radius:8px;padding:12px 14px">
+              <div style="font-size:12px;font-weight:700;color:#0ea96a;margin-bottom:4px">📍 Posición X, Y del TCP</div>
+              <div style="font-size:12px;color:var(--mu);line-height:1.6">Sale de la <strong style="color:var(--tx)">columna 4, filas 1 y 2</strong>: <code style="background:var(--bg);padding:1px 5px;border-radius:3px">T[0][3] = a·cosθ</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:3px">T[1][3] = a·sinθ</code>. Cada junta acumula su desplazamiento en X: el eslabón (<em>a</em>) proyectado por el ángulo acumulado (θ).</div>
+            </div>
+            <div style="background:rgba(26,110,245,.07);border:1px solid rgba(26,110,245,.25);border-left:3px solid #1a6ef5;border-radius:8px;padding:12px 14px">
+              <div style="font-size:12px;font-weight:700;color:#1a6ef5;margin-bottom:4px">📍 Posición Z del TCP</div>
+              <div style="font-size:12px;color:var(--mu);line-height:1.6">Sale de la <strong style="color:var(--tx)">columna 4, fila 3</strong>: <code style="background:var(--bg);padding:1px 5px;border-radius:3px">T[2][3] = d</code>. Es el desplazamiento axial a lo largo del eje Z — alturas, longitudes verticales. Se acumula con cada junta.</div>
+            </div>
+            <div style="background:rgba(224,90,10,.07);border:1px solid rgba(224,90,10,.25);border-left:3px solid #e05a0a;border-radius:8px;padding:12px 14px">
+              <div style="font-size:12px;font-weight:700;color:#e05a0a;margin-bottom:4px">🔄 Orientación (A, B, C)</div>
+              <div style="font-size:12px;color:var(--mu);line-height:1.6">Sale de la <strong style="color:var(--tx)">submatriz de rotación 3×3</strong> (columnas 1-3, filas 1-3). Se extraen los ángulos de Euler <em>A = atan2(R₁₀,R₀₀)</em>, <em>B = atan2(−R₂₀,√…)</em>, <em>C = atan2(R₂₁,R₂₂)</em>. Representan la orientación de la herramienta en el espacio.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FK chain explanation -->
+        <div style="background:var(--bg);border:1px solid var(--brd);border-left:3px solid var(--or);border-radius:8px;padding:16px;font-family:var(--fm);font-size:13px;margin-top:14px">
+          <div style="font-size:10px;color:var(--or);letter-spacing:2px;margin-bottom:8px">CINEMÁTICA DIRECTA COMPLETA — ¿Cómo se encadenan las matrices?</div>
+          <div style="color:var(--gr);font-size:15px;margin-bottom:10px">T₀ⁿ = T₁ · T₂ · T₃ · ... · Tₙ</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:12px">
+            <div style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--or);font-weight:700;min-width:24px">1.</span><span style="color:var(--mu);line-height:1.5">Cada junta genera su propia T<sub>i</sub> con sus 4 parámetros (θ, d, a, α). La posición y orientación son <strong style="color:var(--tx)">relativas al marco anterior</strong>.</span></div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--or);font-weight:700;min-width:24px">2.</span><span style="color:var(--mu);line-height:1.5">Al multiplicar T₁·T₂, obtienes la posición de la junta 2 <strong style="color:var(--tx)">relativa a la base</strong>. Cada multiplicación "encadena" el marco.</span></div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--or);font-weight:700;min-width:24px">3.</span><span style="color:var(--mu);line-height:1.5">La matrix final T₀ⁿ tiene en su <strong style="color:#0ea96a">columna 4</strong> la posición X, Y, Z del TCP <strong style="color:var(--tx)">respecto a la base</strong>, y en su <strong style="color:#e05a0a">submatriz 3×3</strong> la orientación completa.</span></div>
+            <div style="background:rgba(26,110,245,.06);border-radius:6px;padding:8px 12px;margin-top:4px;font-size:11px;color:var(--mu)">
+              <span style="color:var(--acc);font-weight:700">Extracción: </span>
+              <code>X = T[0][3]</code> &nbsp;|&nbsp; <code>Y = T[1][3]</code> &nbsp;|&nbsp; <code>Z = T[2][3]</code> &nbsp;|&nbsp; <span style="color:#e05a0a">Orientación ← atan2 sobre R₃ₓ₃</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TABLA D-H ═══ -->
+<section id="tabla">
+  <div class="stag">// 02 · Tabla Comentada</div>
+  <h2 class="sh2">Tabla <span>D-H</span> — Por qué cada número</h2>
+  <div style="background:rgba(26,110,245,.06);border:1px solid rgba(26,110,245,.18);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start">
+    <div style="font-size:24px;flex-shrink:0">💬</div>
+    <div style="font-size:13px;line-height:1.7;color:var(--mu)">Cada celda muestra el valor y explica <strong style="color:var(--tx)">por qué ese número</strong>. Los íconos indican si el valor es <span class="badge-var">▶ variable</span> (cambia con el movimiento), <span class="badge-const">■ constante</span> (fijo por diseño), o <span class="badge-off">⚙ offset</span> (corrección mecánica). <strong style="color:var(--tx)">Al mover los sliders del diagrama, la fila correspondiente se resalta aquí.</strong></div>
+  </div>
+
+  <div class="rtabs" id="tbl-tabs"></div>
+  <div class="fkbar">
+    <div class="fki"><span class="fkk">TCP X</span><span class="fkv" id="tr-x">—</span><span class="fku">mm</span></div>
+    <div class="fki"><span class="fkk">TCP Y</span><span class="fkv" id="tr-y">—</span><span class="fku">mm</span></div>
+    <div class="fki"><span class="fkk">TCP Z</span><span class="fkv" id="tr-z">—</span><span class="fku">mm</span></div>
+    <div class="fki"><span class="fkk">A</span><span class="fkv" id="tr-a">—</span><span class="fku">gra</span></div>
+    <div class="fki"><span class="fkk">B</span><span class="fkv" id="tr-b">—</span><span class="fku">gra</span></div>
+    <div class="fki"><span class="fkk">C</span><span class="fkv" id="tr-c">—</span><span class="fku">gra</span></div>
+  </div>
+  <div class="at-wrap">
+    <div class="at-hd"><div class="at-hd-ti">Parámetros Denavit-Hartenberg</div><div class="at-hd-rob" id="at-rn">—</div></div>
+    <div style="overflow-x:auto"><table class="at"><thead><tr>
+      <th style="width:100px">JUNTA</th>
+      <th style="width:160px">EJES X, Y, Z del Marco</th>
+      <th>θ (grados)</th><th>d (mm)</th><th>a (mm)</th><th>α (grados)</th>
+    </tr></thead><tbody id="at-body"></tbody></table></div>
+    <div class="leg">
+      <div class="li"><div class="ld" style="background:var(--acc)"></div><span class="badge-var">▶ variable</span> cambia con el movimiento</div>
+      <div class="li"><div class="ld" style="background:var(--mu)"></div><span class="badge-const">■ constante</span> fijo por diseño del robot</div>
+      <div class="li"><div class="ld" style="background:var(--or)"></div><span class="badge-off">⚙ offset</span> corrección de cero mecánico</div>
+    </div>
+  </div>
+
+  <div class="fg-wrap">
+    <div class="fg-hd"><div class="fg-hd-t">📖 Guía: ¿Cómo se llena la tabla?</div><div class="fg-hd-s">Columna por columna con ejemplos del robot seleccionado</div></div>
+    <div class="fg-bd" id="fg-body"></div>
+  </div>
+</section>
+
+<!-- ═══ SIMULADOR 3D ═══ -->
+<section id="sim">
+  <div class="stag">// 03 · Visualización</div>
+  <h2 class="sh2">Simulador <span>3D</span></h2>
+  <div class="strow" id="sim-tabs"></div>
+  <div class="sim-lay">
+    <div class="sim-pan" id="sim-sliders"></div>
+    <div class="sim-vp">
+      <canvas id="sim-canvas"></canvas>
+      <div class="shud">
+        <div>X: <span class="hv" id="hx">—</span> mm</div>
+        <div>Y: <span class="hv" id="hy">—</span> mm</div>
+        <div>Z: <span class="hv" id="hz">—</span> mm</div>
+      </div>
+      <div class="sht">Arrastrar: rotar · Scroll: zoom</div>
+    </div>
+  </div>
+  <div class="sbtns">
+    <button class="sbtn" onclick="simHome()">◉ Posición Inicial</button>
+    <button class="sbtn" onclick="simClear()">⊗ Limpiar Rastro</button>
+  </div>
+</section>
+<!-- ═══ CINEMÁTICA INVERSA ═══ -->
+<section id="ik">
+  <div class="stag">// 04 · Cinemática Inversa</div>
+  <h2 class="sh2">¿Dónde poner el <span>TCP</span>?</h2>
+  <p style="color:var(--mu);font-size:14px;max-width:620px;line-height:1.7;margin-bottom:24px">
+    La <strong style="color:var(--tx)">cinemática inversa</strong> resuelve el problema opuesto: dado un punto X,Y,Z en el espacio,
+    ¿qué ángulos necesita cada junta para llegar ahí? Usa un algoritmo numérico iterativo (gradiente descendente).
+  </p>
+
+  <div class="strow" id="ik-tabs"></div>
+
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;min-height:480px">
+
+    <!-- Panel izquierdo: inputs -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <!-- Target XYZ -->
+      <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:18px;box-shadow:var(--sh)">
+        <div style="font-size:11px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:14px">Posición objetivo del TCP</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:var(--fm);font-weight:700;color:#e05200;min-width:20px">X</span>
+            <input id="ik-x" type="number" value="400" style="flex:1;padding:8px 10px;border:1px solid var(--brd);border-radius:6px;font-family:var(--fm);font-size:14px;background:var(--bg);color:var(--tx)">
+            <span style="color:var(--mu);font-size:12px">mm</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:var(--fm);font-weight:700;color:#0ea96a;min-width:20px">Y</span>
+            <input id="ik-y" type="number" value="0" style="flex:1;padding:8px 10px;border:1px solid var(--brd);border-radius:6px;font-family:var(--fm);font-size:14px;background:var(--bg);color:var(--tx)">
+            <span style="color:var(--mu);font-size:12px">mm</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:var(--fm);font-weight:700;color:#1a6ef5;min-width:20px">Z</span>
+            <input id="ik-z" type="number" value="500" style="flex:1;padding:8px 10px;border:1px solid var(--brd);border-radius:6px;font-family:var(--fm);font-size:14px;background:var(--bg);color:var(--tx)">
+            <span style="color:var(--mu);font-size:12px">mm</span>
+          </div>
+        </div>
+        <button onclick="solveIK()" style="margin-top:14px;width:100%;padding:11px;background:var(--acc);color:white;border:none;border-radius:8px;font-family:var(--ff);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#1558d0'" onmouseout="this.style.background='var(--acc)'">
+          ⚡ Calcular Cinemática Inversa
+        </button>
+      </div>
+
+      <!-- Resultado ángulos -->
+      <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:18px;box-shadow:var(--sh)">
+        <div style="font-size:11px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:12px">Ángulos calculados</div>
+        <div id="ik-result" style="font-family:var(--fm);font-size:13px;color:var(--mu)">
+          Introduce una posición y presiona Calcular.
+        </div>
+      </div>
+
+      <!-- Error y estado -->
+      <div id="ik-status" style="background:rgba(26,110,245,.06);border:1px solid rgba(26,110,245,.18);border-radius:10px;padding:14px;font-size:12px;color:var(--mu);line-height:1.6;display:none"></div>
+
+      <!-- Presets -->
+      <div style="background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:16px;box-shadow:var(--sh)">
+        <div style="font-size:11px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:10px">Posiciones de prueba</div>
+        <div style="display:flex;flex-direction:column;gap:6px" id="ik-presets"></div>
+      </div>
+    </div>
+
+    <!-- Panel derecho: visor 3D IK -->
+    <div style="background:#0c1018;border:1px solid var(--brd);border-radius:12px;position:relative;overflow:hidden;box-shadow:var(--sh2)">
+      <canvas id="ik-canvas" style="width:100%;height:100%;display:block"></canvas>
+      <div class="shud">
+        <div>TCP X: <span class="hv" id="ik-hx">—</span> mm</div>
+        <div>TCP Y: <span class="hv" id="ik-hy">—</span> mm</div>
+        <div>TCP Z: <span class="hv" id="ik-hz">—</span> mm</div>
+        <div style="margin-top:4px">Error: <span class="hv" id="ik-err" style="color:#e09a0a">—</span> mm</div>
+      </div>
+      <div class="sht">Arrastrar: rotar · Scroll: zoom</div>
+      <!-- Punto objetivo -->
+      <div id="ik-target-label" style="position:absolute;top:10px;right:12px;font-family:var(--fm);font-size:11px;color:rgba(255,255,255,.5);display:none">
+        🎯 Objetivo: <span id="ik-target-xyz" style="color:#4fdb9a"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Matrices paso a paso ── -->
+  <div id="ik-matrices" style="margin-top:24px;display:none">
+    <div style="font-size:13px;font-weight:700;color:var(--mu);letter-spacing:2px;text-transform:uppercase;font-family:var(--fm);margin-bottom:16px">
+      🔢 Matrices de transformación — paso a paso
+    </div>
+
+    <!-- Tabs: individual vs acumulada -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="mbtab-ind" class="rtab on" onclick="showMtab('ind')">T₁, T₂… individuales</button>
+      <button id="mbtab-acc" class="rtab"    onclick="showMtab('acc')">T₀ⁿ acumulada</button>
+      <button id="mbtab-fin" class="rtab"    onclick="showMtab('fin')">Resultado final</button>
+    </div>
+
+    <div id="mview-ind"></div>
+    <div id="mview-acc" style="display:none"></div>
+    <div id="mview-fin" style="display:none"></div>
+  </div>
+
+</section>
+
+<footer>Denavit–Hartenberg · Cinemática de robots · 1955</footer>
+
+<script>
+// ════════════════════════════════
+// ROBOT DATA
+// ════════════════════════════════
+const ROBOTS={
+  kuka:{
+    name:'KUKA KR5 sixx R650',color:0xe8540a,
+    joints:[
+      {name:'A1',label:'Base',    min:-170,max:170, init:0,  c:'#1a6ef5'},
+      {name:'A2',label:'Hombro',  min:-190,max:45,  init:-90,c:'#e05a0a'},
+      {name:'A3',label:'Codo',    min:-119,max:165, init:90, c:'#0ea96a'},
+      {name:'A4',label:'Antebr.', min:-190,max:190, init:0,  c:'#e09a0a'},
+      {name:'A5',label:'Muñeca',  min:-120,max:120, init:0,  c:'#7c3cf5'},
+      {name:'A6',label:'Brida',   min:-358,max:358, init:0,  c:'#e03a6a'},
+    ],
+    dh:q=>[
+      {theta:q[0],   d:335,a:75, alpha:-90},
+      {theta:q[1],   d:0,  a:310,alpha:0  },
+      {theta:q[2]-90,d:0,  a:0,  alpha:-90},
+      {theta:q[3],   d:320,a:0,  alpha:90 },
+      {theta:q[4],   d:0,  a:0,  alpha:-90},
+      {theta:q[5],   d:80, a:0,  alpha:0  },
+    ],
+    // diagram: planar projection using first 3 joints, scaled link lengths
+    diagJoints:[0,1,2], diagLinks:[190,160,120],
+    rows:[
+      {jt:'A1',lb:'Base',
+       theta:{v:'θ₁',t:'var',  w:'<strong>Variable articular.</strong> Rota la base alrededor del eje vertical. Vale 0° en posición inicial.'},
+       d:    {v:'335',t:'const',w:'<strong>Altura de la base.</strong> <strong>335 mm</strong> verticales del suelo al centro de J2. Fijo del datasheet.'},
+       a:    {v:'75', t:'const',w:'<strong>Offset horizontal.</strong> J2 está <strong>75 mm</strong> adelante de J1. Se lee del plano mecánico.'},
+       alpha:{v:'−90°',t:'const',w:'<strong>−90° de torsión.</strong> Z1 (hombro) ⊥ Z0 (vertical). Hay que rotar −90° en X para alinearlos.'}},
+      {jt:'A2',lb:'Hombro',
+       theta:{v:'θ₂',t:'var',  w:'<strong>Variable articular.</strong> Sube/baja el brazo. Inicio: −90° para que el brazo quede vertical.'},
+       d:    {v:'0',  t:'const',w:'<strong>d = 0.</strong> J2 y J3 están en el mismo plano. Sin separación axial.'},
+       a:    {v:'310',t:'const',w:'<strong>Longitud del brazo inferior.</strong> <strong>310 mm</strong> de J2 a J3. Del datasheet.'},
+       alpha:{v:'0°', t:'const',w:'<strong>0° — Ejes paralelos.</strong> J2 y J3 giran en el mismo plano. Sin torsión.'}},
+      {jt:'A3',lb:'Codo',
+       theta:{v:'θ₃−90°',t:'offset',w:'<strong>Variable + offset −90°.</strong> Cuando A3=0° el brazo está horizontal, pero D-H requiere vertical. Se corrige restando 90°.'},
+       d:    {v:'0',     t:'const', w:'<strong>d = 0.</strong> J3 y J4 en el mismo plano transversal.'},
+       a:    {v:'0',     t:'const', w:'<strong>a = 0.</strong> La longitud de codo a muñeca se captura en d₄=320 mm (a lo largo de Z).'},
+       alpha:{v:'−90°',  t:'const', w:'<strong>−90° de torsión.</strong> Z4 (antebrazo) ⊥ Z3 (codo). Se gira −90° en X.'}},
+      {jt:'A4',lb:'Antebr.',
+       theta:{v:'θ₄',t:'var',  w:'<strong>Variable articular.</strong> Roll del antebrazo — orienta la muñeca.'},
+       d:    {v:'320',t:'const',w:'<strong>Longitud brazo superior.</strong> <strong>320 mm</strong> del codo J3 al centro de la muñeca J5.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> La muñeca está centrada en el eje del antebrazo.'},
+       alpha:{v:'90°',t:'const',w:'<strong>+90° de torsión.</strong> Z5 (muñeca pitch) ⊥ Z4 (roll).'}},
+      {jt:'A5',lb:'Muñeca',
+       theta:{v:'θ₅',t:'var',  w:'<strong>Variable articular.</strong> Pitch de la muñeca — ángulo de ataque de la herramienta.'},
+       d:    {v:'0',  t:'const',w:'<strong>d = 0 — Muñeca esférica.</strong> J4, J5 y J6 se cruzan en un punto.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> Sin eslabón entre J5 y J6 (muñeca esférica).'},
+       alpha:{v:'−90°',t:'const',w:'<strong>−90° de torsión.</strong> Eje de brida (Z6) ⊥ eje de pitch (Z5).'}},
+      {jt:'A6',lb:'Brida',
+       theta:{v:'θ₆',t:'var',  w:'<strong>Variable articular.</strong> Roll final de la herramienta.'},
+       d:    {v:'80', t:'const',w:'<strong>Distancia muñeca→TCP.</strong> <strong>80 mm</strong> del centro de J5 a la cara de la brida.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> TCP centrado en el eje de la brida.'},
+       alpha:{v:'0°', t:'const',w:'<strong>α = 0°.</strong> Marco TCP alineado con J6. Sin torsión adicional.'}},
+    ]
+  },
+  puma:{
+    name:'PUMA 560',color:0x1a6ef5,
+    joints:[
+      {name:'J1',label:'Cintura',  min:-160,max:160, init:0,  c:'#1a6ef5'},
+      {name:'J2',label:'Hombro',   min:-225,max:45,  init:45, c:'#e05a0a'},
+      {name:'J3',label:'Codo',     min:-45, max:225, init:-90,c:'#0ea96a'},
+      {name:'J4',label:'Rot.Muñ.', min:-150,max:150, init:0,  c:'#e09a0a'},
+      {name:'J5',label:'Flex.Muñ.',min:-100,max:100, init:0,  c:'#7c3cf5'},
+      {name:'J6',label:'Brida',    min:-266,max:266, init:0,  c:'#e03a6a'},
+    ],
+    dh:q=>[
+      {theta:q[0],   d:0,  a:0,  alpha:90 },
+      {theta:q[1],   d:149,a:431,alpha:0  },
+      {theta:q[2]-90,d:0,  a:-20,alpha:90 },
+      {theta:q[3],   d:433,a:0,  alpha:-90},
+      {theta:q[4],   d:0,  a:0,  alpha:90 },
+      {theta:q[5],   d:0,  a:0,  alpha:0  },
+    ],
+    diagJoints:[0,1,2], diagLinks:[180,170,130],
+    rows:[
+      {jt:'J1',lb:'Base',
+       theta:{v:'θ₁',t:'var',  w:'<strong>Variable articular.</strong> Rotación de la base alrededor del eje vertical.'},
+       d:    {v:'0',  t:'const',w:'<strong>d = 0.</strong> El origen del marco 0 y marco 1 coinciden.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> Los ejes Z0 y Z1 se intersectan. Sin longitud de eslabón.'},
+       alpha:{v:'90°',t:'const',w:'<strong>+90° de torsión.</strong> Z1 (hombro) ⊥ Z0 (vertical).'}},
+      {jt:'J2',lb:'Hombro',
+       theta:{v:'θ₂',  t:'var',  w:'<strong>Variable articular.</strong> Eleva o baja el brazo superior.'},
+       d:    {v:'149', t:'const',w:'<strong>149 mm offset.</strong> J2 está desplazado 149 mm en Z₁ respecto a J1.'},
+       a:    {v:'431', t:'const',w:'<strong>431 mm brazo.</strong> Longitud del eslabón superior del PUMA.'},
+       alpha:{v:'0°',  t:'const',w:'<strong>0° — Paralelos.</strong> J2 y J3 giran en el mismo plano vertical.'}},
+      {jt:'J3',lb:'Codo',
+       theta:{v:'θ₃−90°',t:'offset',w:'<strong>Variable + offset.</strong> Corrección de 90° igual que en el KUKA.'},
+       d:    {v:'0',     t:'const', w:'<strong>d = 0.</strong> J3 y J4 en el mismo plano.'},
+       a:    {v:'−20',   t:'const', w:'<strong>−20 mm.</strong> Pequeño offset mecánico del eje J4 respecto a J3.'},
+       alpha:{v:'90°',   t:'const', w:'<strong>+90° de torsión.</strong> El eje J4 es ⊥ al eje J3.'}},
+      {jt:'J4',lb:'Muñeca1',
+       theta:{v:'θ₄',t:'var',  w:'<strong>Variable articular.</strong> Roll de la muñeca.'},
+       d:    {v:'433',t:'const',w:'<strong>433 mm.</strong> Longitud del antebrazo PUMA — de J3 al centro de la muñeca.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> Muñeca esférica, sin offset lateral.'},
+       alpha:{v:'−90°',t:'const',w:'<strong>−90° de torsión.</strong> Eje pitch (J5) ⊥ eje roll (J4).'}},
+      {jt:'J5',lb:'Muñeca2',
+       theta:{v:'θ₅',t:'var',  w:'<strong>Variable articular.</strong> Pitch de la muñeca.'},
+       d:    {v:'0',  t:'const',w:'<strong>d = 0.</strong> Muñeca esférica — J5 y J6 se intersectan.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> Sin eslabón en la muñeca esférica.'},
+       alpha:{v:'90°',t:'const',w:'<strong>+90° de torsión.</strong> Eje yaw (J6) ⊥ eje pitch (J5).'}},
+      {jt:'J6',lb:'Muñeca3',
+       theta:{v:'θ₆',t:'var',  w:'<strong>Variable articular.</strong> Yaw — rotación final de la herramienta.'},
+       d:    {v:'0',  t:'const',w:'<strong>d = 0.</strong> TCP en el mismo origen que J6 en el PUMA estándar.'},
+       a:    {v:'0',  t:'const',w:'<strong>a = 0.</strong> Sin offset lateral en la brida.'},
+       alpha:{v:'0°', t:'const',w:'<strong>α = 0°.</strong> Marco TCP alineado con J6.'}},
+    ]
+  },
+  rr:{
+    name:'Robot RR Planar (2-DOF)',color:0x0ea96a,
+    joints:[
+      {name:'J1',label:'Junta 1',min:-180,max:180,init:45, c:'#1a6ef5'},
+      {name:'J2',label:'Junta 2',min:-180,max:180,init:60, c:'#e05a0a'},
+    ],
+    dh:q=>[
+      {theta:q[0],d:0,a:300,alpha:0},
+      {theta:q[1],d:0,a:200,alpha:0},
+    ],
+    diagJoints:[0,1], diagLinks:[230,170],
+    rows:[
+      {jt:'J1',lb:'Junta 1',
+       theta:{v:'θ₁',  t:'var',  w:'<strong>Variable articular.</strong> Ángulo de J1 desde la horizontal. Controla todo el brazo 1.'},
+       d:    {v:'0',   t:'const',w:'<strong>d = 0 — Robot planar.</strong> Todo en el plano XY. Sin movimiento axial Z.'},
+       a:    {v:'300', t:'const',w:'<strong>300 mm — Eslabón 1.</strong> Distancia de J1 a J2. Parámetro principal del eslabón.'},
+       alpha:{v:'0°',  t:'const',w:'<strong>0° — Robot planar.</strong> Todos los ejes Z paralelos (apuntan hacia afuera del plano).'}},
+      {jt:'J2',lb:'Junta 2',
+       theta:{v:'θ₂',  t:'var',  w:'<strong>Variable articular.</strong> Ángulo de J2 relativo al eslabón 1. Con θ₁ determina la posición del TCP.'},
+       d:    {v:'0',   t:'const',w:'<strong>d = 0 — Robot planar.</strong> Sin movimiento axial.'},
+       a:    {v:'200', t:'const',w:'<strong>200 mm — Eslabón 2.</strong> Longitud de J2 al TCP. Más corto que el eslabón 1.'},
+       alpha:{v:'0°',  t:'const',w:'<strong>0° — Robot planar.</strong> Todos los ejes Z paralelos siempre.'}},
+    ]
+  }
+};
+
+// ════════════════════════════════
+// FK ENGINE
+// ════════════════════════════════
+function dhm(t,d,a,al){const T=t*Math.PI/180,A=al*Math.PI/180,ct=Math.cos(T),st=Math.sin(T),ca=Math.cos(A),sa=Math.sin(A);return[[ct,-st*ca,st*sa,a*ct],[st,ct*ca,-ct*sa,a*st],[0,sa,ca,d],[0,0,0,1]];}
+function mm4(A,B){const R=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,1]];for(let i=0;i<4;i++)for(let j=0;j<4;j++){R[i][j]=0;for(let k=0;k<4;k++)R[i][j]+=A[i][k]*B[k][j];}return R;}
+function fk(ps){let T=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];const pts=[[0,0,0]];for(const p of ps){T=mm4(T,dhm(p.theta,p.d,p.a,p.alpha));pts.push([T[0][3],T[1][3],T[2][3]]);}return{pts,R:[[T[0][0],T[0][1],T[0][2]],[T[1][0],T[1][1],T[1][2]],[T[2][0],T[2][1],T[2][2]]]};}
+function abc(R){const b=Math.atan2(-R[2][0],Math.sqrt(R[0][0]**2+R[1][0]**2)),cb=Math.cos(b);let a,c;if(Math.abs(cb)<1e-6){a=0;c=Math.atan2(-R[0][1],R[1][1]);}else{a=Math.atan2(R[1][0]/cb,R[0][0]/cb);c=Math.atan2(R[2][1]/cb,R[2][2]/cb);}return[a,b,c].map(v=>v*180/Math.PI);}
+
+// ════════════════════════════════
+// TRIAD SVG helper
+// ════════════════════════════════
+function triadSVG(angle,size){
+  size=size||58;angle=angle||0;
+  const a=angle*Math.PI/180,L=size*.36,cx=size/2,cy=size/2+4;
+  const xex=cx+L*Math.cos(a),xey=cy-L*Math.sin(a);
+  const zex=cx+L*Math.cos(a+Math.PI/2),zey=cy-L*Math.sin(a+Math.PI/2);
+  const id='t'+angle+size;
+  return`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="display:block;overflow:visible"><defs><marker id="mx${id}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#e05200"/></marker><marker id="mz${id}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#1a6ef5"/></marker></defs><line x1="${cx}" y1="${cy}" x2="${xex}" y2="${xey}" stroke="#e05200" stroke-width="2" marker-end="url(#mx${id})"/><line x1="${cx}" y1="${cy}" x2="${zex}" y2="${zey}" stroke="#1a6ef5" stroke-width="2" marker-end="url(#mz${id})"/><circle cx="${cx}" cy="${cy}" r="4" fill="none" stroke="#0ea96a" stroke-width="1.8"/><circle cx="${cx}" cy="${cy}" r="1.8" fill="#0ea96a"/><text x="${xex+3}" y="${xey+4}" font-size="9" font-weight="700" fill="#e05200" font-family="monospace">X</text><text x="${zex+3}" y="${zey-1}" font-size="9" font-weight="700" fill="#1a6ef5" font-family="monospace">Z</text><text x="${cx-8}" y="${cy+15}" font-size="9" font-weight="700" fill="#0ea96a" font-family="monospace">Y</text></svg>`;
+}
+
+// ════════════════════════════════
+// INTERACTIVE 2D DIAGRAM
+// ════════════════════════════════
+let diagKey='kuka', diagAngles=[], diagSls=[], activeJoint=-1, animMode='all';
+const SUBS=['₀','₁','₂','₃','₄','₅','₆'];
+const NS='http://www.w3.org/2000/svg';
+
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);if(parent)parent.appendChild(e);return e;}
+function txt(parent,x,y,str,attrs){const e=el('text',{x,y,'font-size':'12','font-family':'Fira Code,monospace',...attrs},parent);e.textContent=str;return e;}
+
+function diagLoad(key,btn){
+  diagKey=key; activeJoint=-1;
+  document.querySelectorAll('#dt-kuka,#dt-puma,#dt-rr').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  const rob=ROBOTS[key];
+  diagAngles=rob.joints.map(j=>j.init);
+  // Build sliders for ALL joints — usando estilo sjt igual al simulador 3D
+  const cont=document.getElementById('diag-sliders');
+  cont.innerHTML=''; diagSls=[];
+  rob.joints.forEach((jt,ji)=>{
+    const w=document.createElement('div');
+    w.className='sjt'; w.dataset.ji=ji;
+    w.style.borderLeftColor=jt.c;
+    w.innerHTML=`<div class="sjhd"><span class="sjnm">${jt.name}</span><span class="sjv" id="dv${ji}">${diagAngles[ji].toFixed(1)}°</span></div><div class="sjlb">${jt.label}</div><input type="range" id="ds${ji}" min="${jt.min}" max="${jt.max}" step="0.5" value="${diagAngles[ji]}"><div class="sjr"><span>${jt.min}°</span><span>${jt.max}°</span></div>`;
+    cont.appendChild(w);
+    const sl=w.querySelector('input');
+    sl.addEventListener('input',()=>{
+      diagAngles[ji]=parseFloat(sl.value);
+      document.getElementById('dv'+ji).textContent=parseFloat(sl.value).toFixed(1)+'°';
+      highlightRow(ji);
+      drawDiag();
+    });
+    // evitar que el click en el input dispare el click del div padre
+    sl.addEventListener('click', e=>e.stopPropagation());
+    sl.addEventListener('mousedown', e=>e.stopPropagation());
+    sl.addEventListener('touchstart', e=>e.stopPropagation());
+    w.addEventListener('click',()=>{ selectJoint(ji); drawDiag(); });
+    diagSls.push({sl,ji});
+  });
+  const ip=document.getElementById('info-panel');
+  if(ip)ip.style.display='none';
+  drawDiag();
+  loadTblRobot(key,null);
+}
+
+function selectJoint(ji){
+  activeJoint=ji;
+  document.querySelectorAll('.sjt[data-ji]').forEach(d=>{
+    d.style.boxShadow=parseInt(d.dataset.ji)===ji?'0 0 0 2px rgba(224,90,10,.3)':'';
+  });
+  const rob=ROBOTS[diagKey];
+  const row=rob.rows[ji];
+  const jt=rob.joints[ji];
+  const ip=document.getElementById('info-panel');
+  const IT={var:'<span class="badge-var">▶ variable</span>',const:'<span class="badge-const">■ constante</span>',offset:'<span class="badge-off">⚙ offset</span>'};
+  ip.style.display='block';
+  document.getElementById('info-title').innerHTML=`<span style="color:${jt.c};font-size:16px">●</span> ${row.jt} — ${row.lb}`;
+  document.getElementById('info-rows').innerHTML=`
+    <div class="info-row"><span class="info-key" style="color:#e09a0a">θ</span><span class="info-val">${row.theta.v}</span>${IT[row.theta.t]}</div>
+    <div class="info-row"><span class="info-key" style="color:#1a6ef5">d</span><span class="info-val">${row.d.v}</span>${IT[row.d.t]}</div>
+    <div class="info-row"><span class="info-key" style="color:#0ea96a">a</span><span class="info-val">${row.a.v}</span>${IT[row.a.t]}</div>
+    <div class="info-row"><span class="info-key" style="color:#7c3cf5">α</span><span class="info-val">${row.alpha.v}</span>${IT[row.alpha.t]}</div>
+    <div style="margin-top:8px;font-size:11px;color:#6b7f99;line-height:1.5" id="info-detail"></div>`;
+  // show explanation for active animMode param
+  updateInfoDetail(row);
+  highlightRow(ji);
+}
+
+function updateInfoDetail(row){
+  const d=document.getElementById('info-detail');
+  if(!d||!row)return;
+  const map={theta:row.theta.w,d:row.d.w,a:row.a.w,alpha:row.alpha.w};
+  if(animMode==='all'){
+    d.innerHTML=`<b>θ:</b> ${row.theta.w}<br><br><b>d:</b> ${row.d.w}<br><br><b>a:</b> ${row.a.w}<br><br><b>α:</b> ${row.alpha.w}`;
+  } else {
+    d.innerHTML=map[animMode]||'';
+  }
+}
+
+function highlightRow(ji){
+  document.querySelectorAll('#at-body tr').forEach((tr,i)=>{
+    tr.classList.toggle('row-hi', i===ji);
+  });
+}
+
+function animShow(mode){
+  animMode=mode;
+  // solo los botones de parámetros, no el reset
+  ['all','theta','d','a','alpha'].forEach(m=>{
+    const b=document.getElementById('abtn-'+m);
+    if(b) b.classList.toggle('on', m===mode);
+  });
+  if(activeJoint>=0){
+    const row=ROBOTS[diagKey].rows[activeJoint];
+    if(row) updateInfoDetail(row);
+  }
+  drawDiag();
+}
+
+function animReset(){
+  const rob=ROBOTS[diagKey];
+  diagAngles=rob.joints.map(j=>j.init);
+  diagSls.forEach(({sl,ji})=>{
+    sl.value=diagAngles[ji];
+    const dv=document.getElementById('dv'+ji);
+    if(dv) dv.textContent=diagAngles[ji].toFixed(1)+'°';
+  });
+  activeJoint=-1;
+  const ip=document.getElementById('info-panel');
+  if(ip) ip.style.display='none';
+  document.querySelectorAll('.sjt[data-ji]').forEach(d=>d.style.boxShadow='');
+  drawDiag();
+}
+
+// ════════════════════════════════
+// DIAGRAMA 3D (Three.js)
+// ════════════════════════════════
+const dc=document.getElementById('diag-canvas');
+const drndr=new THREE.WebGLRenderer({canvas:dc,antialias:true,alpha:false});
+drndr.setPixelRatio(window.devicePixelRatio);
+drndr.setClearColor(0x0c1018,1);
+const dsce=new THREE.Scene();
+const dcam=new THREE.PerspectiveCamera(45,1,1,8000);
+dsce.add(new THREE.AmbientLight(0xffffff,1.2));
+const ddl=new THREE.DirectionalLight(0xffffff,0.6);ddl.position.set(300,600,400);dsce.add(ddl);
+dsce.add(new THREE.GridHelper(1200,16,0x1c2535,0x131b26));
+
+// Cámara orbit para el diagrama
+let dsp={t:Math.PI/5,p:Math.PI/3.5,r:1100};
+function updDcam(){
+  dcam.position.set(dsp.r*Math.sin(dsp.p)*Math.sin(dsp.t),dsp.r*Math.cos(dsp.p)+200,dsp.r*Math.sin(dsp.p)*Math.cos(dsp.t));
+  dcam.lookAt(0,200,0);
+}
+let dDrag=false,dLast={x:0,y:0};
+dc.addEventListener('mousedown',e=>{dDrag=true;dLast={x:e.clientX,y:e.clientY};});
+dc.addEventListener('mouseup',()=>dDrag=false);
+dc.addEventListener('mouseleave',()=>dDrag=false);
+dc.addEventListener('mousemove',e=>{if(!dDrag)return;dsp.t-=(e.clientX-dLast.x)*.005;dsp.p=Math.max(.15,Math.min(Math.PI*.45,dsp.p+(e.clientY-dLast.y)*.005));dLast={x:e.clientX,y:e.clientY};updDcam();});
+dc.addEventListener('wheel',e=>{dsp.r=Math.max(200,Math.min(2500,dsp.r+e.deltaY*.8));updDcam();});
+// Touch para diagrama
+dc.addEventListener('touchstart',e=>{e.preventDefault();dDrag=true;dLast={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:false});
+dc.addEventListener('touchend',()=>dDrag=false);
+dc.addEventListener('touchmove',e=>{e.preventDefault();if(!dDrag)return;const t=e.touches[0];dsp.t-=(t.clientX-dLast.x)*.005;dsp.p=Math.max(.15,Math.min(Math.PI*.45,dsp.p+(t.clientY-dLast.y)*.005));dLast={x:t.clientX,y:t.clientY};updDcam();},{passive:false});
+// Pinch zoom diagrama
+let dPinchD=0;
+dc.addEventListener('touchstart',e=>{if(e.touches.length===2){dPinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:true});
+dc.addEventListener('touchmove',e=>{if(e.touches.length===2){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);dsp.r=Math.max(200,Math.min(2500,dsp.r-(nd-dPinchD)*2));dPinchD=nd;updDcam();}},{passive:true});
+
+function onDRz(){const vp=dc.parentElement;drndr.setSize(vp.clientWidth,vp.clientHeight,false);dcam.aspect=vp.clientWidth/vp.clientHeight;dcam.updateProjectionMatrix();}
+window.addEventListener('resize',onDRz);
+
+// Grupo de objetos del diagrama
+const dg=new THREE.Group();dsce.add(dg);
+
+// helpers
+function mkArrow3(col,dir,len,origin){
+  const a=new THREE.ArrowHelper(dir.normalize(),origin,len,col,len*.25,len*.15);
+  return a;
+}
+function mkLine3(p1,p2,col,dashed){
+  const pts=[new THREE.Vector3(...p1),new THREE.Vector3(...p2)];
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const mat=dashed
+    ? new THREE.LineDashedMaterial({color:col,dashSize:12,gapSize:7,linewidth:2})
+    : new THREE.LineBasicMaterial({color:col,linewidth:2});
+  const line=new THREE.Line(geo,mat);
+  if(dashed)line.computeLineDistances();
+  return line;
+}
+
+// Convierte posición DH [x,y,z] a Three.js — igual que t3() del simulador
+// DH: X=frente, Y=izq, Z=arriba → THREE: X=frente, Y=arriba, Z=-izq
+function dh2three(p){return new THREE.Vector3(p[0],p[2],-p[1]);}
+
+// Convierte matriz de rotación DH a vectores de eje en Three.js
+function dhR2axes(R){
+  // Columna i de R en DH → convertida a THREE igual que t3
+  const col=ci=>({x:R[0][ci], y:R[2][ci], z:-R[1][ci]});
+  return{
+    x: new THREE.Vector3(col(0).x, col(0).y, col(0).z).normalize(),
+    y: new THREE.Vector3(col(1).x, col(1).y, col(1).z).normalize(),
+    z: new THREE.Vector3(col(2).x, col(2).y, col(2).z).normalize(),
+  };
+}
+
+// Etiquetas HTML superpuestas
+function worldToScreen(pos3,cam,canvas){
+  const v=pos3.clone().project(cam);
+  const rect=canvas.getBoundingClientRect();
+  return{
+    x:(v.x*.5+.5)*rect.width,
+    y:(-.5*v.y+.5)*rect.height,
+    behind:v.z>1
+  };
+}
+
+let dLabelsData=[];  // [{text,pos3,color,style}]
+
+function drawDiag(){
+  // Limpiar escena
+  while(dg.children.length)dg.remove(dg.children[0]);
+  dLabelsData=[];
+
+  const rob=ROBOTS[diagKey];
+  const params=rob.dh(rob.joints.map((_,ii)=>diagAngles[ii]));
+  const frames=fkFull(params);  // [{pos,R}] para cada marco
+  const SC2=[0x4f9cf9,0xe05a0a,0x0ea96a,0xe09a0a,0x7c3cf5,0xe03a6a];
+  const AL=90; // longitud flechas de marco
+
+  // Base
+  const baseMesh=new THREE.Mesh(
+    new THREE.CylinderGeometry(55,65,20,32),
+    new THREE.MeshStandardMaterial({color:0x1a2535,metalness:.7,roughness:.3})
+  );
+  baseMesh.position.y=10;dg.add(baseMesh);
+
+  // Para cada eslabón: tubo entre marco i y marco i+1
+  for(let i=0;i<frames.length-1;i++){
+    const p1=dh2three(frames[i].pos);
+    const p2=dh2three(frames[i+1].pos);
+    const dir=new THREE.Vector3().subVectors(p2,p1);
+    const len=dir.length();
+    if(len>1){
+      const col=SC2[i%SC2.length];
+      const mat=new THREE.MeshStandardMaterial({color:col,metalness:.5,roughness:.4});
+      const R=Math.max(5,12-i);
+      const cyl=new THREE.Mesh(new THREE.CylinderGeometry(R,R,len,10),mat);
+      cyl.position.copy(new THREE.Vector3().addVectors(p1,p2).multiplyScalar(.5));
+      cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+      dg.add(cyl);
+
+      // ── a: línea paralela al eslabón con etiqueta ──
+      if(animMode==='a'||animMode==='all'){
+        const aVal=rob.rows[i]?.a?.v||'0';
+        const aNum=parseFloat(aVal);
+        // offset perpendicular en el plano XZ
+        const perp=new THREE.Vector3(dir.z,0,-dir.x).normalize().multiplyScalar(30);
+        const ap1=p1.clone().add(perp);
+        const ap2=p2.clone().add(perp);
+        dg.add(mkLine3([ap1.x,ap1.y,ap1.z],[ap2.x,ap2.y,ap2.z],0x0ea96a,aNum===0));
+        const mid=new THREE.Vector3().addVectors(ap1,ap2).multiplyScalar(.5).add(perp.clone().multiplyScalar(.6));
+        dLabelsData.push({text:`a${i+1} = ${aVal} mm`,pos3:mid,color:'#0ea96a',sub:`Marco ${i}→${i+1}`});
+      }
+
+      // ── d: recorrido COMPLETO a escala real desde Marco i hasta Marco i+1 por Z ──
+      if(animMode==='d'||animMode==='all'){
+        const dVal=rob.rows[i]?.d?.v||'0';
+        const dNum=parseFloat(dVal);
+        const axes_i=dhR2axes(frames[i].R);
+
+        // Offset lateral para no tapar el eslabón
+        let side=new THREE.Vector3().crossVectors(axes_i.z,new THREE.Vector3(0,1,0)).normalize().multiplyScalar(50);
+        if(side.length()<1) side=new THREE.Vector3(50,0,0);
+
+        if(dNum!==0){
+          // Punto inicio y fin a escala real (p2 es el origen del marco siguiente)
+          const ds=p1.clone().add(side);
+          const de=p2.clone().add(side);
+
+          // Línea punteada gruesa
+          dg.add(mkLine3([ds.x,ds.y,ds.z],[de.x,de.y,de.z],0x4f9cf9,true));
+
+          // Esfera inicio (Marco i)
+          const s1=new THREE.Mesh(new THREE.SphereGeometry(9,12,12),
+            new THREE.MeshStandardMaterial({color:0x4f9cf9,emissive:0x1a6ef5,emissiveIntensity:.5}));
+          s1.position.copy(ds);dg.add(s1);
+
+          // Esfera fin (Marco i+1)
+          const s2=new THREE.Mesh(new THREE.SphereGeometry(9,12,12),
+            new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x4f9cf9,emissiveIntensity:.7}));
+          s2.position.copy(de);dg.add(s2);
+
+          // Flecha dirección al final
+          const dDir=new THREE.Vector3().subVectors(de,ds).normalize();
+          dg.add(mkArrow3(0x4f9cf9,dDir.clone(),36,de.clone().addScaledVector(dDir,-18)));
+
+          // Líneas guía horizontales de p1→ds y p2→de
+          dg.add(mkLine3([p1.x,p1.y,p1.z],[ds.x,ds.y,ds.z],0x4f9cf9,false));
+          dg.add(mkLine3([p2.x,p2.y,p2.z],[de.x,de.y,de.z],0x4f9cf9,false));
+
+          // Etiqueta en el centro
+          const dmid=new THREE.Vector3().addVectors(ds,de).multiplyScalar(.5).add(side.clone().multiplyScalar(.4));
+          dLabelsData.push({text:`d${i+1} = ${dVal} mm`,pos3:dmid,color:'#4f9cf9',sub:`a lo largo de Z${i}: Marco ${i} → Marco ${i+1}`});
+        } else {
+          // d=0: pequeño marcador
+          const ds=p1.clone().add(side);
+          dLabelsData.push({text:`d${i+1} = 0`,pos3:ds,color:'#9fb0c8',sub:`sin desplazamiento axial`});
+        }
+      }
+    }
+
+    // Esfera de junta
+    const jsph=new THREE.Mesh(
+      new THREE.SphereGeometry(10,12,12),
+      new THREE.MeshStandardMaterial({color:SC2[i%SC2.length],metalness:.5,roughness:.3})
+    );
+    jsph.position.copy(p1);dg.add(jsph);
+  }
+
+  // TCP
+  const tcpPos=dh2three(frames[frames.length-1].pos);
+  const tcpMesh=new THREE.Mesh(
+    new THREE.OctahedronGeometry(14,0),
+    new THREE.MeshStandardMaterial({color:0x4fdb9a,emissive:0x4fdb9a,emissiveIntensity:.6})
+  );
+  tcpMesh.position.copy(tcpPos);dg.add(tcpMesh);
+
+  // Triadas X/Y/Z en cada marco
+  for(let i=0;i<frames.length;i++){
+    const fr=frames[i];
+    const origin=dh2three(fr.pos);
+    const axes=dhR2axes(fr.R);
+
+    dg.add(mkArrow3(0xe05200,axes.x.clone(),AL,origin.clone()));
+    dg.add(mkArrow3(0x0ea96a,axes.y.clone(),AL,origin.clone()));
+    dg.add(mkArrow3(0x1a6ef5,axes.z.clone(),AL,origin.clone()));
+
+    // Etiquetas de ejes
+    const SUB2=['₀','₁','₂','₃','₄','₅','₆'];
+    const isLast2=i===frames.length-1;
+    dLabelsData.push({text:`X${SUB2[i]}`,pos3:origin.clone().addScaledVector(axes.x,AL+14),color:'#e05200'});
+    dLabelsData.push({text:`Y${SUB2[i]}`,pos3:origin.clone().addScaledVector(axes.y,AL+14),color:'#0ea96a'});
+    dLabelsData.push({text:`Z${SUB2[i]}`,pos3:origin.clone().addScaledVector(axes.z,AL+14),color:'#4f9cf9'});
+
+    // θ etiqueta
+    if(i>0&&(animMode==='theta'||animMode==='all')){
+      const dA=diagAngles[i-1];
+      if(Math.abs(dA)>0.5){
+        dLabelsData.push({text:`θ${i}=${dA.toFixed(1)}°`,pos3:origin.clone().add(new THREE.Vector3(20,30,20)),color:'#e09a0a'});
+      }
+    }
+
+    // α etiqueta
+    if(i<frames.length-1&&(animMode==='alpha'||animMode==='all')){
+      const aVal=rob.rows[i]?.alpha?.v||'?';
+      dLabelsData.push({text:`α${i+1}=${aVal}`,pos3:origin.clone().add(new THREE.Vector3(35,15,-25)),color:'#7c3cf5',sub:`Z${i}→Z${i+1}`});
+    }
+  }
+
+  // HUD TCP
+  const tcp=frames[frames.length-1].pos;
+  const hx=document.getElementById('dx'),hy=document.getElementById('dy'),hz=document.getElementById('dz');
+  if(hx)hx.textContent=tcp[0].toFixed(1);
+  if(hy)hy.textContent=tcp[1].toFixed(1);
+  if(hz)hz.textContent=tcp[2].toFixed(1);
+}
+
+// Render loop del diagrama
+let dFr=0;
+function animDiag(){
+  requestAnimationFrame(animDiag);
+  dFr++;
+  drndr.render(dsce,dcam);
+  // Actualizar etiquetas HTML
+  const labDiv=document.getElementById('diag-labels');
+  if(!labDiv)return;
+  labDiv.innerHTML='';
+  const rect=dc.getBoundingClientRect();
+  dLabelsData.forEach(({text,pos3,color,sub})=>{
+    const s=worldToScreen(pos3,dcam,dc);
+    if(s.behind)return;
+    const div=document.createElement('div');
+    div.style.cssText=`position:absolute;left:${s.x}px;top:${s.y}px;transform:translate(-50%,-50%);font-family:'Fira Code',monospace;font-size:11px;font-weight:700;color:${color};text-shadow:0 0 4px #0c1018,0 0 8px #0c1018;pointer-events:none;white-space:nowrap`;
+    div.textContent=text;
+    labDiv.appendChild(div);
+    if(sub){
+      const sub2=document.createElement('div');
+      sub2.style.cssText=`position:absolute;left:${s.x}px;top:${s.y+14}px;transform:translate(-50%,-50%);font-family:'Fira Code',monospace;font-size:9px;color:#9fb0c8;text-shadow:0 0 4px #0c1018;pointer-events:none;white-space:nowrap`;
+      sub2.textContent=sub;
+      labDiv.appendChild(sub2);
+    }
+  });
+}
+updDcam(); onDRz(); animDiag();
+
+// ════════════════════════════════
+// ANNOTATED TABLE
+// ════════════════════════════════
+const TS={
+  var:  {dot:'#1a6ef5',bg:'rgba(26,110,245,.07)',brd:'rgba(26,110,245,.25)',badge:'<span class="badge-var">▶ variable</span>'},
+  const:{dot:'#6b7f99',bg:'rgba(107,127,153,.05)',brd:'rgba(107,127,153,.18)',badge:'<span class="badge-const">■ constante</span>'},
+  offset:{dot:'#e05a0a',bg:'rgba(224,90,10,.07)',brd:'rgba(224,90,10,.25)',badge:'<span class="badge-off">⚙ offset</span>'},
+};
+let curTbl='kuka';
+
+function buildTblTabs(){
+  const c=document.getElementById('tbl-tabs');
+  for(const[k,r]of Object.entries(ROBOTS)){
+    const b=document.createElement('button');
+    b.className='rtab'+(k==='kuka'?' on':'');
+    b.dataset.k=k; b.textContent=r.name;
+    b.onclick=()=>loadTblRobot(k,b);
+    c.appendChild(b);
+  }
+}
+
+function loadTblRobot(key,btn){
+  curTbl=key;
+  document.querySelectorAll('#tbl-tabs .rtab').forEach(b=>b.classList.toggle('on',b.dataset.k===key));
+  renderTbl();
+}
+
+function renderTbl(){
+  const rob=ROBOTS[curTbl];
+  document.getElementById('at-rn').textContent=rob.name;
+  const tbody=document.getElementById('at-body');
+  tbody.innerHTML='';
+  const initA=rob.joints.map(j=>j.init);
+  const{pts,R}=fk(rob.dh(initA));
+  rob.rows.forEach((row,i)=>{
+    const jt=rob.joints[i];
+    const tr=document.createElement('tr');
+    tr.id='tbl-row-'+i;
+    const paramTags={
+      theta:{color:'#e09a0a',icon:'🔄',label:`θ<sub>${i+1}</sub>`,hint:`Es el ángulo que gira el Marco <strong style="color:#e09a0a">${i+1}</strong> <em>alrededor del eje Z<sub>${i}</sub></em> respecto al Marco <strong style="color:#e09a0a">${i}</strong>. En juntas rotacionales es la variable que controlas tú con el motor — cambia en tiempo real y arrastra todos los marcos siguientes (${i+2} en adelante).`},
+      d:    {color:'#1a6ef5',icon:'↕',label:`d<sub>${i+1}</sub>`,hint:(()=>{
+        const dv=row.d.v;
+        const dNum=parseFloat(dv);
+        if(dNum===0) return `d<sub>${i+1}</sub> = 0 mm — El origen de Marco <strong style="color:#1a6ef5">${i}</strong> y Marco <strong style="color:#1a6ef5">${i+1}</strong> están en el <strong>mismo punto</strong> sobre el eje Z<sub>${i}</sub>. No hay separación axial entre estas dos juntas.`;
+        return `Mide cuánto se mueve el origen de Marco <strong style="color:#1a6ef5">${i}</strong> al origen de Marco <strong style="color:#1a6ef5">${i+1}</strong> <em>deslizándose recto por el eje Z<sub>${i}</sub></em>.<br>
+        <span style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-family:monospace;font-size:10px">
+          <span style="color:#1a6ef5">Marco ${i}</span>
+          <span style="color:#9fb0c8">──${dNum>0?'▶':'◀'}── ${dv} mm sobre Z<sub>${i}</sub> ──${dNum>0?'▶':'◀'}──</span>
+          <span style="color:#1a6ef5">Marco ${i+1}</span>
+        </span><br>
+        <span style="color:#9fb0c8">Es una distancia <strong style="color:var(--tx)">fija de diseño</strong> — no cambia con el movimiento del robot.</span>`;
+      })()},
+      a:    {color:'#0ea96a',icon:'↔',label:`a<sub>${i+1}</sub>`,hint:(()=>{
+        const av=row.a.v; const aNum=parseFloat(av);
+        if(aNum===0) return `a<sub>${i+1}</sub> = 0 — El eje Z<sub>${i}</sub> y el eje Z<sub>${i+1}</sub> se <strong>cruzan o son paralelos</strong>: no hay distancia horizontal entre ellos. Ocurre típicamente en muñecas esféricas.`;
+        return `Es la longitud del eslabón: la distancia del eje Z<sub>${i}</sub> al eje Z<sub>${i+1}</sub> medida <em>a lo largo de X<sub>${i+1}</sub></em> (horizontal entre los dos ejes Z).<br>
+        <span style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-family:monospace;font-size:10px">
+          <span style="color:#0ea96a">Z<sub>${i}</sub></span>
+          <span style="color:#9fb0c8">──${aNum>0?'▶':'◀'}── ${av} mm sobre X<sub>${i+1}</sub> ──${aNum>0?'▶':'◀'}──</span>
+          <span style="color:#0ea96a">Z<sub>${i+1}</sub></span>
+        </span>`;
+      })()},
+      alpha:{color:'#7c3cf5',icon:'↻',label:`α<sub>${i+1}</sub>`,hint:(()=>{
+        const alv=row.alpha.v;
+        if(alv==='0°'||alv==='0') return `α<sub>${i+1}</sub> = 0° — Z<sub>${i}</sub> y Z<sub>${i+1}</sub> son <strong>paralelos</strong>: apuntan en la misma dirección. Típico de robots planares o juntas en el mismo plano.`;
+        return `Es el ángulo entre Z<sub>${i}</sub> y Z<sub>${i+1}</sub>, medido girando <em>alrededor de X<sub>${i+1}</sub></em>.<br>
+        <span style="color:#7c3cf5;font-family:monospace;font-weight:700">${alv}</span> significa que Z<sub>${i}</sub> ${alv.includes('90')?'es <strong>perpendicular</strong> a':'forma un ángulo de '+alv+' con'} Z<sub>${i+1}</sub>. Esto "tuerce" el eslabón — hace que la siguiente junta apunte en una dirección diferente.`;
+      })()},
+    };
+    function cell(info, param){
+      const s=TS[info.t];
+      const pt=paramTags[param];
+      return`<td><div class="ci" style="border-left:3px solid ${s.brd};background:${s.bg};border-radius:5px;margin:2px 3px">
+        <div class="cv">${info.v}</div>
+        <div class="ct">${s.badge}</div>
+        <div class="cw">${info.w}</div>
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(0,0,0,.04);border-radius:5px;border-left:2px solid ${pt.color};font-size:10px;line-height:1.5;color:#6b7f99">
+          <span style="font-family:monospace;font-weight:700;color:${pt.color}">${pt.icon} ${pt.label}</span> ${pt.hint}
+        </div>
+      </div></td>`;
+    }
+    tr.innerHTML=`<td><div class="jt-c">
+      <div class="jt-nm" style="color:${jt.c}">${row.jt}</div>
+      <div class="jt-lb">${row.lb}</div>
+      <span class="jt-dot" style="background:${jt.c}"></span>
+    </div></td>
+    <td><div style="padding:6px 8px;min-width:150px">
+      <div style="font-family:monospace;font-size:9px;color:#9fb0c8;text-align:center;margin-bottom:5px;font-weight:700">Marco ${i} → Marco ${i+1}</div>
+      ${triadSVG(i*18,44)}
+      <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">
+
+        <div style="background:rgba(224,82,0,.06);border:1px solid rgba(224,82,0,.2);border-radius:6px;padding:5px 8px">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            <span style="color:#e05200;font-family:monospace;font-weight:800;font-size:11px">X<sub>${i}</sub></span>
+            <span style="color:#9fb0c8;font-size:9px">←→</span>
+            <span style="color:#e05200;font-family:monospace;font-weight:800;font-size:11px">X<sub>${i+1}</sub></span>
+          </div>
+          <div style="font-size:10px;color:#6b7f99;line-height:1.4">
+            ${i===0
+              ? `X<sub>0</sub> apunta hacia afuera de la base (libre). X<sub>1</sub> es la normal común entre Z<sub>0</sub> y Z<sub>1</sub> — la define el parámetro <strong style="color:#0ea96a">a₁ = ${row.a.v} mm</strong>.`
+              : `X<sub>${i}</sub> llega desde la junta anterior. X<sub>${i+1}</sub> apunta a lo largo de la normal entre Z<sub>${i}</sub> y Z<sub>${i+1}</sub> — longitud <strong style="color:#0ea96a">a<sub>${i+1}</sub> = ${row.a.v} mm</strong>.`
+            }
+          </div>
+        </div>
+
+        <div style="background:rgba(14,169,106,.06);border:1px solid rgba(14,169,106,.2);border-radius:6px;padding:5px 8px">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            <span style="color:#0ea96a;font-family:monospace;font-weight:800;font-size:11px">Y<sub>${i}</sub></span>
+            <span style="color:#9fb0c8;font-size:9px">←→</span>
+            <span style="color:#0ea96a;font-family:monospace;font-weight:800;font-size:11px">Y<sub>${i+1}</sub></span>
+          </div>
+          <div style="font-size:10px;color:#6b7f99;line-height:1.4">
+            Y<sub>${i}</sub> = Z<sub>${i}</sub> × X<sub>${i}</sub>. Y<sub>${i+1}</sub> = Z<sub>${i+1}</sub> × X<sub>${i+1}</sub>. Se calculan por la regla de la mano derecha — no se miden directamente.
+          </div>
+        </div>
+
+        <div style="background:rgba(26,110,245,.06);border:1px solid rgba(26,110,245,.2);border-radius:6px;padding:5px 8px">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            <span style="color:#1a6ef5;font-family:monospace;font-weight:800;font-size:11px">Z<sub>${i}</sub></span>
+            <span style="color:#9fb0c8;font-size:9px">→</span>
+            <span style="color:#1a6ef5;font-family:monospace;font-weight:800;font-size:11px">Z<sub>${i+1}</sub></span>
+          </div>
+          <div style="font-size:10px;color:#6b7f99;line-height:1.4">
+            Z<sub>${i}</sub> es el eje de la junta ${i+1}. θ<sub>${i+1}</sub> rota <em>alrededor</em> de Z<sub>${i}</sub>, y d<sub>${i+1}</sub> = <strong style="color:#1a6ef5">${row.d.v} mm</strong> traslada <em>a lo largo</em> de Z<sub>${i}</sub>. El ángulo entre Z<sub>${i}</sub> y Z<sub>${i+1}</sub> es α<sub>${i+1}</sub> = <strong style="color:#7c3cf5">${row.alpha.v}</strong>.
+          </div>
+        </div>
+
+      </div>
+    </div></td>
+    ${cell(row.theta,'theta')}${cell(row.d,'d')}${cell(row.a,'a')}${cell(row.alpha,'alpha')}`;
+    tbody.appendChild(tr);
+  });
+  const tcp=pts[pts.length-1];
+  ['x','y','z'].forEach((ax,i)=>document.getElementById('tr-'+ax).textContent=tcp[i].toFixed(2));
+  const[A,B,C]=abc(R);
+  ['a','b','c'].forEach((ax,i)=>document.getElementById('tr-'+ax).textContent=[A,B,C][i].toFixed(2));
+  renderGuide();
+}
+
+function renderGuide(){
+  const rob=ROBOTS[curTbl];
+  const ex=col=>rob.rows.slice(0,Math.min(3,rob.rows.length)).map(r=>`<div class="er"><span class="ej">${r.jt}</span><span class="et">${r[col].w}</span></div>`).join('');
+  const steps=[
+    {n:1,c:'#e09a0a',t:'Columna θ — Ángulo de junta',
+     tx:'θ es el <strong>ángulo de rotación alrededor del eje Z anterior</strong>. En juntas rotacionales es la variable articular <span class="badge-var">▶ variable</span> que cambia con el movimiento. Puede llevar un <span class="badge-off">⚙ offset</span> para corregir el cero mecánico.',
+     ex:ex('theta')},
+    {n:2,c:'#1a6ef5',t:'Columna d — Desplazamiento axial',
+     tx:'d es la distancia a lo largo del eje Z anterior. En juntas rotacionales es <span class="badge-const">■ constante</span> — representa alturas o longitudes que apuntan en la dirección Z. Se lee directamente del datasheet del robot.',
+     ex:ex('d')},
+    {n:3,c:'#0ea96a',t:'Columna a — Longitud del eslabón',
+     tx:'a es la longitud del eslabón entre ejes Z consecutivos medida sobre el eje X. Es <span class="badge-const">■ constante</span>. Si los dos ejes Z se intersectan (muñeca esférica), a = 0.',
+     ex:ex('a')},
+    {n:4,c:'#7c3cf5',t:'Columna α — Torsión del eslabón',
+     tx:'α es el ángulo entre ejes Z consecutivos, medido en X. Es <span class="badge-const">■ constante</span>. Valores típicos: <strong>0°</strong> = ejes paralelos (robot planar), <strong>±90°</strong> = ejes perpendiculares (robots industriales 3D).',
+     ex:ex('alpha')},
+  ];
+  document.getElementById('fg-body').innerHTML=steps.map(s=>`
+    <div class="fgs">
+      <div class="fgs-num" style="background:${s.c}">${s.n}</div>
+      <div class="fgs-c">
+        <div class="fgs-t" style="color:${s.c}">${s.t}</div>
+        <div class="fgs-tx">${s.tx}</div>
+        <div class="fgs-ex">${s.ex}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════
+// SIMULATOR 3D
+// ════════════════════════════════
+const sc=document.getElementById('sim-canvas');
+const rndr=new THREE.WebGLRenderer({canvas:sc,antialias:true});
+rndr.setPixelRatio(window.devicePixelRatio);
+rndr.setClearColor(0x0c1018,1);
+const sce=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(45,1,1,8000);
+sce.add(new THREE.AmbientLight(0x1a2a40,2));
+const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(500,1000,500);sce.add(dl);
+const pl=new THREE.PointLight(0x4f9cf9,2,1200);pl.position.set(200,400,200);sce.add(pl);
+sce.add(new THREE.GridHelper(1400,18,0x1c2535,0x131b26));
+sce.add(new THREE.AxesHelper(100));
+const base3=new THREE.Mesh(new THREE.CylinderGeometry(70,85,28,32),new THREE.MeshStandardMaterial({color:0x1a2535,metalness:.8,roughness:.3}));
+base3.position.y=14;sce.add(base3);
+const lg=new THREE.Group();sce.add(lg);
+let lms=[],jss=[],tcpM,tcpR,tpts=[],tline=null,atrds=[];
+const SC=[0x4f9cf9,0xd0ccc4,0xb8b4ac,0x989490,0x787470,0x4fdb9a];
+function mkArr(col,dir,len){return new THREE.ArrowHelper(dir.normalize(),new THREE.Vector3(0,0,0),len,col,len*.28,len*.18);}
+function mkTriad(L){const g=new THREE.Group();g.add(mkArr(0xe05200,new THREE.Vector3(1,0,0),L));g.add(mkArr(0x0ea96a,new THREE.Vector3(0,1,0),L));g.add(mkArr(0x1a6ef5,new THREE.Vector3(0,0,1),L));return g;}
+function buildG(n){lms.forEach(m=>lg.remove(m));jss.forEach(m=>lg.remove(m));if(tcpM)lg.remove(tcpM);if(tcpR)lg.remove(tcpR);atrds.forEach(t=>lg.remove(t));lms=[];jss=[];atrds=[];const R=Math.max(6,14-n);for(let i=0;i<n;i++){const c=SC[i%SC.length],mat=new THREE.MeshStandardMaterial({color:c,metalness:.6,roughness:.35});const lm=new THREE.Mesh(new THREE.CylinderGeometry(R,R,1,14),mat);lg.add(lm);lms.push(lm);const sm=new THREE.Mesh(new THREE.SphereGeometry(R*1.4,14,14),mat.clone());lg.add(sm);jss.push(sm);const tr=mkTriad(Math.max(28,52-n*3));lg.add(tr);atrds.push(tr);}tcpM=new THREE.Mesh(new THREE.OctahedronGeometry(18,0),new THREE.MeshStandardMaterial({color:0x4fdb9a,emissive:0x4fdb9a,emissiveIntensity:.7}));lg.add(tcpM);tcpR=new THREE.Mesh(new THREE.RingGeometry(20,26,32),new THREE.MeshBasicMaterial({color:0x4fdb9a,side:THREE.DoubleSide,transparent:true,opacity:.4}));lg.add(tcpR);}
+function t3(p){return new THREE.Vector3(p[0],p[2],-p[1]);}
+function fkFull(ps){let T=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];const fr=[{pos:[0,0,0],R:[[1,0,0],[0,1,0],[0,0,1]]}];for(const p of ps){T=mm4(T,dhm(p.theta,p.d,p.a,p.alpha));fr.push({pos:[T[0][3],T[1][3],T[2][3]],R:[[T[0][0],T[0][1],T[0][2]],[T[1][0],T[1][1],T[1][2]],[T[2][0],T[2][1],T[2][2]]]});}return fr;}
+function renderS(pts,params){for(let i=0;i<lms.length;i++){const f=t3(pts[i]),to=t3(pts[i+1]||pts[i]),dir=new THREE.Vector3().subVectors(to,f),len=dir.length();lms[i].position.copy(new THREE.Vector3().addVectors(f,to).multiplyScalar(.5));lms[i].scale.set(1,Math.max(len,.001),1);if(len>.01)lms[i].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());jss[i].position.copy(f);}if(params){const frs=fkFull(params);for(let i=0;i<atrds.length;i++){const fr=frs[i];atrds[i].position.copy(t3(fr.pos));const R=fr.R;const m=new THREE.Matrix4();m.set(R[0][0],R[0][2],-R[0][1],0,R[2][0],R[2][2],-R[2][1],0,-R[1][0],-R[1][2],R[1][1],0,0,0,0,1);atrds[i].setRotationFromMatrix(m);}}const tp=t3(pts[pts.length-1]);tcpM.position.copy(tp);tcpR.position.copy(tp);tcpR.rotation.x=Math.PI/2;tpts.push([...pts[pts.length-1]]);if(tpts.length>250)tpts.shift();if(tline){sce.remove(tline);tline.geometry.dispose();}if(tpts.length>1){const tg=new THREE.BufferGeometry().setFromPoints(tpts.map(p=>t3(p)));tline=new THREE.Line(tg,new THREE.LineBasicMaterial({color:0x1a6ef5,opacity:.5,transparent:true}));sce.add(tline);}}
+let curSim='kuka',sls3=[];
+function buildSimTabs(){const row=document.getElementById('sim-tabs');for(const[k,r]of Object.entries(ROBOTS)){const b=document.createElement('button');b.className='rtab'+(k==='kuka'?' on':'');b.dataset.k=k;b.textContent=r.name;b.onclick=()=>loadSim(k);row.appendChild(b);}}
+function loadSim(key){curSim=key;document.querySelectorAll('#sim-tabs .rtab').forEach(b=>b.classList.toggle('on',b.dataset.k===key));const rob=ROBOTS[key];buildG(rob.joints.length);tpts=[];const panel=document.getElementById('sim-sliders');panel.innerHTML='';sls3=[];rob.joints.forEach((jt,i)=>{const d=document.createElement('div');d.className='sjt';d.style.borderLeftColor=jt.c;d.innerHTML=`<div class="sjhd"><span class="sjnm">${jt.name}</span><span class="sjv" id="sv3${i}">${jt.init.toFixed(1)}°</span></div><div class="sjlb">${jt.label}</div><input type="range" id="ss3${i}" min="${jt.min}" max="${jt.max}" step="0.1" value="${jt.init}"><div class="sjr"><span>${jt.min}°</span><span>${jt.max}°</span></div>`;panel.appendChild(d);const sl=d.querySelector('input');sl.addEventListener('input',()=>{document.getElementById(`sv3${i}`).textContent=parseFloat(sl.value).toFixed(1)+'°';updSim3();});sls3.push(sl);});updSim3();}
+function updSim3(){const rob=ROBOTS[curSim],angs=sls3.map(s=>parseFloat(s.value)),params=rob.dh(angs),{pts}=fk(params);renderS(pts,params);const tcp=pts[pts.length-1];['x','y','z'].forEach((ax,i)=>document.getElementById('h'+ax).textContent=tcp[i].toFixed(1));}
+function simHome(){const rob=ROBOTS[curSim];rob.joints.forEach((jt,i)=>{sls3[i].value=jt.init;document.getElementById(`sv3${i}`).textContent=jt.init.toFixed(1)+'°';});tpts=[];updSim3();}
+function simClear(){tpts=[];if(tline){sce.remove(tline);tline=null;}}
+let isDr=false,lmm2={x:0,y:0},sp={t:Math.PI/4,p:Math.PI/3,r:1300};
+function updCam(){cam.position.set(sp.r*Math.sin(sp.p)*Math.sin(sp.t),sp.r*Math.cos(sp.p)+300,sp.r*Math.sin(sp.p)*Math.cos(sp.t));cam.lookAt(0,300,0);}
+sc.addEventListener('mousedown',e=>{isDr=true;lmm2={x:e.clientX,y:e.clientY};});
+sc.addEventListener('mouseup',()=>isDr=false);sc.addEventListener('mouseleave',()=>isDr=false);
+sc.addEventListener('mousemove',e=>{if(!isDr)return;sp.t-=(e.clientX-lmm2.x)*.005;sp.p=Math.max(.1,Math.min(Math.PI*.47,sp.p+(e.clientY-lmm2.y)*.005));lmm2={x:e.clientX,y:e.clientY};updCam();});
+sc.addEventListener('wheel',e=>{sp.r=Math.max(250,Math.min(3000,sp.r+e.deltaY));updCam();});
+// Touch para simulador
+sc.addEventListener('touchstart',e=>{e.preventDefault();isDr=true;lmm2={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:false});
+sc.addEventListener('touchend',()=>isDr=false);
+sc.addEventListener('touchmove',e=>{e.preventDefault();if(!isDr)return;const t=e.touches[0];sp.t-=(t.clientX-lmm2.x)*.005;sp.p=Math.max(.1,Math.min(Math.PI*.47,sp.p+(t.clientY-lmm2.y)*.005));lmm2={x:t.clientX,y:t.clientY};updCam();},{passive:false});
+// Pinch zoom simulador
+let sPinchD=0;
+sc.addEventListener('touchstart',e=>{if(e.touches.length===2){sPinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:true});
+sc.addEventListener('touchmove',e=>{if(e.touches.length===2){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);sp.r=Math.max(250,Math.min(3000,sp.r-(nd-sPinchD)*3));sPinchD=nd;updCam();}},{passive:true});
+function onRz(){const vp=sc.parentElement;rndr.setSize(vp.clientWidth,vp.clientHeight,false);cam.aspect=vp.clientWidth/vp.clientHeight;cam.updateProjectionMatrix();}
+window.addEventListener('resize',onRz);
+let fr3=0;function anim3(){requestAnimationFrame(anim3);fr3++;if(tcpM)tcpM.rotation.y=fr3*.025;if(tcpR)tcpR.material.opacity=.25+.2*Math.sin(fr3*.05);pl.position.x=300*Math.cos(fr3*.004);pl.position.z=300*Math.sin(fr3*.004);rndr.render(sce,cam);}
+
+// NAV
+function goTo(id){document.getElementById(id).scrollIntoView({behavior:'smooth'});}
+const SECS=['hero','teoria','tabla','sim'];
+window.addEventListener('scroll',()=>{let cur='hero';SECS.forEach(id=>{const e=document.getElementById(id);if(e&&window.scrollY>=e.offsetTop-80)cur=id;});document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.getAttribute('onclick').includes(cur)));});
+
+// ════════════════════════════════
+// CINEMÁTICA INVERSA
+// ════════════════════════════════
+let ikRobot='kuka';
+const IK_PRESETS={
+  kuka:[
+    {label:'Frente extendido',  x:500, y:0,   z:500},
+    {label:'Arriba',            x:75,  y:0,   z:900},
+    {label:'Lado derecho',      x:0,   y:400, z:500},
+    {label:'Bajo y adelante',   x:400, y:0,   z:200},
+  ],
+  puma:[
+    {label:'Frente extendido',  x:400, y:0,   z:400},
+    {label:'Arriba',            x:0,   y:0,   z:700},
+    {label:'Lado',              x:0,   y:350, z:400},
+    {label:'Bajo',              x:300, y:0,   z:100},
+  ],
+  rr:[
+    {label:'Frente',   x:400, y:0, z:0},
+    {label:'Arriba',   x:0,   y:0, z:400},
+    {label:'Diagonal', x:300, y:0, z:250},
+  ]
+};
+
+function buildIkTabs(){
+  const row=document.getElementById('ik-tabs');
+  if(!row)return;
+  for(const[k,r]of Object.entries(ROBOTS)){
+    const b=document.createElement('button');
+    b.className='rtab'+(k==='kuka'?' on':'');
+    b.dataset.k=k; b.textContent=r.name;
+    b.onclick=()=>{
+      ikRobot=k;
+      document.querySelectorAll('#ik-tabs .rtab').forEach(x=>x.classList.toggle('on',x.dataset.k===k));
+      buildIkPresets();
+      ikRenderRobot(ROBOTS[k].joints.map(j=>j.init));
+    };
+    row.appendChild(b);
+  }
+}
+
+function buildIkPresets(){
+  const c=document.getElementById('ik-presets');
+  if(!c)return;
+  c.innerHTML='';
+  (IK_PRESETS[ikRobot]||[]).forEach(p=>{
+    const b=document.createElement('button');
+    b.className='sbtn';
+    b.style.cssText='width:100%;text-align:left;font-size:12px;padding:8px 12px';
+    b.textContent=`📍 ${p.label}  (${p.x}, ${p.y}, ${p.z})`;
+    b.onclick=()=>{
+      document.getElementById('ik-x').value=p.x;
+      document.getElementById('ik-y').value=p.y;
+      document.getElementById('ik-z').value=p.z;
+      solveIK();
+    };
+    c.appendChild(b);
+  });
+}
+
+// IK numérico: gradiente descendente (FABRIK simplificado para posición)
+function solveIK(){
+  const rob=ROBOTS[ikRobot];
+  const tx=parseFloat(document.getElementById('ik-x').value)||0;
+  const ty=parseFloat(document.getElementById('ik-y').value)||0;
+  const tz=parseFloat(document.getElementById('ik-z').value)||0;
+  const target=[tx,ty,tz];
+
+  // Iniciar desde posición home
+  let q=rob.joints.map(j=>j.init);
+  const lr=0.8;       // learning rate
+  const eps=0.5;      // tolerancia mm
+  const maxIter=2000;
+  const h=0.01;       // diferencia finita en grados
+
+  function tcpPos(angles){
+    const{pts}=fk(rob.dh(angles));
+    return pts[pts.length-1];
+  }
+  function err(angles){
+    const p=tcpPos(angles);
+    return Math.sqrt((p[0]-target[0])**2+(p[1]-target[1])**2+(p[2]-target[2])**2);
+  }
+
+  let e=err(q);
+  let iter=0;
+  while(e>eps&&iter<maxIter){
+    const grad=q.map((_,i)=>{
+      const qp=[...q]; qp[i]+=h;
+      const qm=[...q]; qm[i]-=h;
+      return (err(qp)-err(qm))/(2*h);
+    });
+    const gLen=Math.sqrt(grad.reduce((s,g)=>s+g*g,0))||1;
+    q=q.map((qi,i)=>{
+      const jt=rob.joints[i];
+      return Math.max(jt.min,Math.min(jt.max, qi-lr*(grad[i]/gLen)));
+    });
+    e=err(q);
+    iter++;
+  }
+
+  const finalTcp=tcpPos(q);
+  const finalErr=err(q);
+  const ok=finalErr<5;
+
+  // Mostrar resultados
+  const resDiv=document.getElementById('ik-result');
+  resDiv.innerHTML=q.map((qi,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd2)">
+      <span style="font-weight:700;color:${rob.joints[i].c}">${rob.joints[i].name}</span>
+      <span style="font-weight:700;color:var(--tx)">${qi.toFixed(2)}°</span>
+      <div style="width:80px;height:4px;background:var(--brd);border-radius:2px;overflow:hidden">
+        <div style="height:100%;background:${rob.joints[i].c};width:${Math.abs(qi-rob.joints[i].min)/(rob.joints[i].max-rob.joints[i].min)*100}%"></div>
+      </div>
+    </div>`).join('');
+
+  // Status
+  const st=document.getElementById('ik-status');
+  st.style.display='block';
+  st.style.background=ok?'rgba(14,169,106,.08)':'rgba(224,90,10,.08)';
+  st.style.borderColor=ok?'rgba(14,169,106,.25)':'rgba(224,90,10,.25)';
+  st.innerHTML=`
+    <div style="font-weight:700;color:${ok?'#0ea96a':'#e05a0a'};margin-bottom:4px">${ok?'✅ Solución encontrada':'⚠️ Solución aproximada'}</div>
+    <div>Iteraciones: <strong>${iter}</strong> | Error final: <strong style="color:${ok?'#0ea96a':'#e09a0a'}">${finalErr.toFixed(2)} mm</strong></div>
+    <div style="margin-top:4px">TCP real: X=${finalTcp[0].toFixed(1)} Y=${finalTcp[1].toFixed(1)} Z=${finalTcp[2].toFixed(1)}</div>`;
+
+  // HUD
+  ['ik-hx','ik-hy','ik-hz'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=finalTcp[i].toFixed(1);});
+  const errEl=document.getElementById('ik-err');if(errEl)errEl.textContent=finalErr.toFixed(2);
+
+  // Target label
+  const tl=document.getElementById('ik-target-label');
+  const tx2=document.getElementById('ik-target-xyz');
+  if(tl)tl.style.display='block';
+  if(tx2)tx2.textContent=`${tx}, ${ty}, ${tz}`;
+
+  // Render 3D con los ángulos resueltos + punto objetivo
+  ikRenderRobot(q, target);
+
+  // Mostrar matrices
+  renderIKMatrices(rob, q);
+}
+
+// ── Helpers para formatear matrices ──
+function fmtNum(v){return v.toFixed(3).replace('-0.000','0.000');}
+function fmtCell(v,highlight){
+  const s=fmtNum(v);
+  return `<td style="padding:5px 8px;font-family:var(--fm);font-size:11px;text-align:right;white-space:nowrap;color:${highlight?highlight:'var(--tx)'};font-weight:${highlight?'700':'400'}">${s}</td>`;
+}
+function matrixHTML(T, title, color, subtitle){
+  // T es array 4x4
+  const rowColors=[
+    [null,null,'#e05a0a','#0ea96a'],  // fila 0: col 2=X orientación, col 3=posX
+    [null,null,'#e05a0a','#0ea96a'],  // fila 1
+    [null,null,null,'#1a6ef5'],        // fila 2: col 3=posZ
+    [null,null,null,null],
+  ];
+  const rows=T.map((row,ri)=>`<tr style="background:${ri%2?'rgba(0,0,0,.02)':'transparent'}">${row.map((v,ci)=>fmtCell(v,rowColors[ri][ci])).join('')}</tr>`).join('');
+  return `
+    <div style="background:var(--sur);border:1px solid var(--brd);border-left:3px solid ${color};border-radius:10px;padding:14px 16px;min-width:300px">
+      <div style="font-family:var(--fm);font-size:10px;color:${color};letter-spacing:2px;margin-bottom:4px">${title}</div>
+      ${subtitle?`<div style="font-size:11px;color:var(--mu);margin-bottom:8px">${subtitle}</div>`:''}
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse">
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;flex-wrap:wrap">
+        <span style="color:#e05a0a">■ Orientación (R 3×3)</span>
+        <span style="color:#0ea96a">■ Pos X,Y</span>
+        <span style="color:#1a6ef5">■ Pos Z</span>
+      </div>
+    </div>`;
+}
+
+function renderIKMatrices(rob, q){
+  const params=rob.dh(q);
+  const n=params.length;
+  const colors=['#1a6ef5','#e05a0a','#0ea96a','#e09a0a','#7c3cf5','#e03a6a'];
+
+  // Matrices individuales
+  const Tind=params.map(p=>dhm(p.theta,p.d,p.a,p.alpha));
+
+  // Matrices acumuladas
+  const Tacc=[];
+  let Tcum=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+  for(let i=0;i<n;i++){
+    Tcum=mm4(Tcum,Tind[i]);
+    Tacc.push(Tcum.map(r=>[...r]));
+  }
+  const Tfin=Tacc[n-1];
+
+  function cell(v,col){
+    const s=parseFloat(v).toFixed(3);
+    return '<td style="padding:5px 10px;font-family:monospace;font-size:12px;text-align:right;color:'+(col||'var(--tx)')+';font-weight:'+(col?'700':'400')+'">'+s+'</td>';
+  }
+
+  function matCard(T, title, color, sub){
+    // Colorear: cols 0-2 = rotación, col 3 = traslación XY=verde / Z=azul
+    const colMap=[[null,null,null,'#0ea96a'],[null,null,null,'#0ea96a'],[null,null,null,'#1a6ef5'],[null,null,null,null]];
+    let rows='';
+    for(let r=0;r<4;r++){
+      rows+='<tr>';
+      // Bracket izquierdo
+      if(r===0) rows+='<td rowspan="4" style="font-size:28px;color:#9fb0c8;vertical-align:middle;padding:0 4px;line-height:1">⎡<br>⎢<br>⎢<br>⎣</td>';
+      for(let c=0;c<4;c++){
+        const isRot=c<3;
+        const isTxyz=c===3&&r<3;
+        const col=isTxyz?(r===2?'#1a6ef5':'#0ea96a'):(isRot&&r<3?'#e05a0a':null);
+        rows+=cell(T[r][c],col);
+        // Separador antes de col 3
+        if(c===2) rows+='<td style="padding:0 4px;color:#d0dae8;font-size:18px">│</td>';
+      }
+      if(r===0) rows+='<td rowspan="4" style="font-size:28px;color:#9fb0c8;vertical-align:middle;padding:0 4px;line-height:1">⎤<br>⎥<br>⎥<br>⎦</td>';
+      rows+='</tr>';
+    }
+    return '<div style="background:var(--sur);border:1px solid var(--brd);border-left:4px solid '+color+';border-radius:10px;padding:14px 16px;min-width:340px;flex-shrink:0">'
+      +'<div style="font-family:monospace;font-size:11px;color:'+color+';font-weight:700;margin-bottom:3px">'+title+'</div>'
+      +(sub?'<div style="font-size:11px;color:var(--mu);margin-bottom:10px">'+sub+'</div>':'')
+      +'<div style="overflow-x:auto"><table style="border-collapse:collapse"><tbody>'+rows+'</tbody></table></div>'
+      +'<div style="display:flex;gap:10px;margin-top:10px;font-size:10px;flex-wrap:wrap">'
+      +'<span style="color:#e05a0a">■ R 3×3 — orientación</span>'
+      +'<span style="color:#0ea96a">■ X,Y — posición</span>'
+      +'<span style="color:#1a6ef5">■ Z — posición</span>'
+      +'</div></div>';
+  }
+
+  // Individuales
+  let indHTML='<div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:10px">';
+  for(let i=0;i<n;i++){
+    indHTML+=matCard(Tind[i],
+      'T'+(i+1)+' — '+rob.joints[i].name+'  (θ='+q[i].toFixed(1)+'°, d='+params[i].d+', a='+params[i].a+', α='+params[i].alpha+'°)',
+      colors[i%colors.length],
+      'Marco '+i+' → Marco '+(i+1)
+    );
+  }
+  indHTML+='</div>';
+  document.getElementById('mview-ind').innerHTML=indHTML;
+
+  // Acumuladas
+  let accHTML='<div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:10px">';
+  for(let i=0;i<n;i++){
+    const T=Tacc[i];
+    accHTML+=matCard(T,
+      'T\u2080\u2192'+(i+1)+' = T\u2081\xB7T\u2082\xB7\u22EF\xB7T'+(i+1),
+      colors[i%colors.length],
+      'Marco '+(i+1)+' respecto a la base — X='+T[0][3].toFixed(1)+' Y='+T[1][3].toFixed(1)+' Z='+T[2][3].toFixed(1)+' mm'
+    );
+  }
+  accHTML+='</div>';
+  document.getElementById('mview-acc').innerHTML=accHTML;
+
+  // Final
+  const[A,B,C]=abc([[Tfin[0][0],Tfin[0][1],Tfin[0][2]],[Tfin[1][0],Tfin[1][1],Tfin[1][2]],[Tfin[2][0],Tfin[2][1],Tfin[2][2]]]);
+  document.getElementById('mview-fin').innerHTML=
+    '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">'
+    +matCard(Tfin,'T\u2080\u207F — Matriz final T\u2081\xB7T\u2082\xB7\u22EF\xB7T'+n,'#4fdb9a','Posición y orientación completa del TCP respecto a la base')
+    +'<div style="display:flex;flex-direction:column;gap:10px;min-width:240px">'
+    +'<div style="background:rgba(14,169,106,.08);border:1px solid rgba(14,169,106,.2);border-radius:8px;padding:14px">'
+    +'<div style="font-size:10px;font-weight:700;color:#0ea96a;letter-spacing:2px;margin-bottom:8px">POSICIÓN TCP — columna 4</div>'
+    +'<div style="font-family:monospace;font-size:14px;line-height:2">'
+    +'<span style="color:#e05200">X</span> = T[0][3] = <strong>'+Tfin[0][3].toFixed(2)+' mm</strong><br>'
+    +'<span style="color:#0ea96a">Y</span> = T[1][3] = <strong>'+Tfin[1][3].toFixed(2)+' mm</strong><br>'
+    +'<span style="color:#1a6ef5">Z</span> = T[2][3] = <strong>'+Tfin[2][3].toFixed(2)+' mm</strong>'
+    +'</div></div>'
+    +'<div style="background:rgba(224,90,10,.08);border:1px solid rgba(224,90,10,.2);border-radius:8px;padding:14px">'
+    +'<div style="font-size:10px;font-weight:700;color:#e05a0a;letter-spacing:2px;margin-bottom:8px">ORIENTACIÓN — submatriz R 3×3</div>'
+    +'<div style="font-family:monospace;font-size:13px;line-height:2">'
+    +'A = <strong>'+A.toFixed(2)+'°</strong> <span style="font-size:10px;color:var(--mu)">atan2(R₁₀, R₀₀)</span><br>'
+    +'B = <strong>'+B.toFixed(2)+'°</strong> <span style="font-size:10px;color:var(--mu)">atan2(−R₂₀, √…)</span><br>'
+    +'C = <strong>'+C.toFixed(2)+'°</strong> <span style="font-size:10px;color:var(--mu)">atan2(R₂₁, R₂₂)</span>'
+    +'</div></div>'
+    +'<div style="background:rgba(26,110,245,.06);border:1px solid rgba(26,110,245,.18);border-radius:8px;padding:12px;font-size:11px;color:var(--mu);line-height:1.7">'
+    +'Las primeras 3 columnas forman la <strong style="color:var(--tx)">matriz R</strong> (rotación). '
+    +'La columna 4 es el <strong style="color:var(--tx)">vector p</strong> (posición del TCP). '
+    +'La fila 4 siempre es [0, 0, 0, 1].'
+    +'</div>'
+    +'</div></div>';
+
+  document.getElementById('ik-matrices').style.display='block';
+  showMtab('ind');
+}
+
+function showMtab(tab){
+  ['ind','acc','fin'].forEach(t=>{
+    document.getElementById('mview-'+t).style.display=t===tab?'block':'none';
+    document.getElementById('mbtab-'+t).classList.toggle('on',t===tab);
+  });
+}
+
+// ── Visor 3D IK ──
+const ikc=document.getElementById('ik-canvas');
+const ikrndr=new THREE.WebGLRenderer({canvas:ikc,antialias:true});
+ikrndr.setPixelRatio(window.devicePixelRatio);
+ikrndr.setClearColor(0x0c1018,1);
+const iksce=new THREE.Scene();
+const ikcam=new THREE.PerspectiveCamera(45,1,1,8000);
+iksce.add(new THREE.AmbientLight(0x1a2a40,2));
+const ikdl=new THREE.DirectionalLight(0xffffff,.8);ikdl.position.set(500,1000,500);iksce.add(ikdl);
+const ikpl=new THREE.PointLight(0x4f9cf9,2,1200);ikpl.position.set(200,400,200);iksce.add(ikpl);
+iksce.add(new THREE.GridHelper(1400,18,0x1c2535,0x131b26));
+iksce.add(new THREE.AxesHelper(80));
+const ikbase=new THREE.Mesh(new THREE.CylinderGeometry(60,75,24,32),new THREE.MeshStandardMaterial({color:0x1a2535,metalness:.8,roughness:.3}));
+ikbase.position.y=12;iksce.add(ikbase);
+const ikg=new THREE.Group();iksce.add(ikg);
+let ikTargetMesh=null;
+
+let iksp={t:Math.PI/4,p:Math.PI/3.2,r:1200};
+function updIkcam(){ikcam.position.set(iksp.r*Math.sin(iksp.p)*Math.sin(iksp.t),iksp.r*Math.cos(iksp.p)+280,iksp.r*Math.sin(iksp.p)*Math.cos(iksp.t));ikcam.lookAt(0,280,0);}
+let ikDrag=false,ikLast={x:0,y:0};
+ikc.addEventListener('mousedown',e=>{ikDrag=true;ikLast={x:e.clientX,y:e.clientY};});
+ikc.addEventListener('mouseup',()=>ikDrag=false);ikc.addEventListener('mouseleave',()=>ikDrag=false);
+ikc.addEventListener('mousemove',e=>{if(!ikDrag)return;iksp.t-=(e.clientX-ikLast.x)*.005;iksp.p=Math.max(.1,Math.min(Math.PI*.47,iksp.p+(e.clientY-ikLast.y)*.005));ikLast={x:e.clientX,y:e.clientY};updIkcam();});
+ikc.addEventListener('wheel',e=>{iksp.r=Math.max(250,Math.min(3000,iksp.r+e.deltaY));updIkcam();});
+// Touch IK
+ikc.addEventListener('touchstart',e=>{e.preventDefault();ikDrag=true;ikLast={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:false});
+ikc.addEventListener('touchend',()=>ikDrag=false);
+ikc.addEventListener('touchmove',e=>{e.preventDefault();if(!ikDrag)return;const t=e.touches[0];iksp.t-=(t.clientX-ikLast.x)*.005;iksp.p=Math.max(.1,Math.min(Math.PI*.47,iksp.p+(t.clientY-ikLast.y)*.005));ikLast={x:t.clientX,y:t.clientY};updIkcam();},{passive:false});
+let ikPinch=0;
+ikc.addEventListener('touchstart',e=>{if(e.touches.length===2)ikPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
+ikc.addEventListener('touchmove',e=>{if(e.touches.length===2){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);iksp.r=Math.max(250,Math.min(3000,iksp.r-(nd-ikPinch)*3));ikPinch=nd;updIkcam();}},{passive:true});
+
+function onIkRz(){const vp=ikc.parentElement;ikrndr.setSize(vp.clientWidth,vp.clientHeight,false);ikcam.aspect=vp.clientWidth/vp.clientHeight;ikcam.updateProjectionMatrix();}
+window.addEventListener('resize',onIkRz);
+
+const IK_SC=[0x4f9cf9,0xd0ccc4,0xb8b4ac,0x989490,0x787470,0x4fdb9a];
+
+function ikRenderRobot(angles, target){
+  while(ikg.children.length)ikg.remove(ikg.children[0]);
+  if(ikTargetMesh){iksce.remove(ikTargetMesh);ikTargetMesh=null;}
+
+  const rob=ROBOTS[ikRobot];
+  const params=rob.dh(angles);
+  const{pts}=fk(params);
+  const n=rob.joints.length;
+  const R2=Math.max(6,14-n);
+
+  for(let i=0;i<n;i++){
+    const f=t3(pts[i]),to=t3(pts[i+1]||pts[i]);
+    const dir=new THREE.Vector3().subVectors(to,f);
+    const len=dir.length();
+    const c=IK_SC[i%IK_SC.length];
+    const mat=new THREE.MeshStandardMaterial({color:c,metalness:.6,roughness:.35});
+
+    // Eslabón
+    if(len>1){
+      const cyl=new THREE.Mesh(new THREE.CylinderGeometry(R2,R2,len,14),mat);
+      cyl.position.copy(new THREE.Vector3().addVectors(f,to).multiplyScalar(.5));
+      if(len>.01)cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+      ikg.add(cyl);
+    }
+    // Junta
+    const sph=new THREE.Mesh(new THREE.SphereGeometry(R2*1.4,14,14),mat.clone());
+    sph.position.copy(f);ikg.add(sph);
+  }
+
+  // TCP
+  const tcp=t3(pts[pts.length-1]);
+  const tcpM=new THREE.Mesh(new THREE.OctahedronGeometry(16,0),new THREE.MeshStandardMaterial({color:0x4fdb9a,emissive:0x4fdb9a,emissiveIntensity:.7}));
+  tcpM.position.copy(tcp);ikg.add(tcpM);
+
+  // Punto objetivo
+  if(target){
+    const tpos=t3(target);
+    // Esfera pulsante objetivo
+    ikTargetMesh=new THREE.Mesh(new THREE.SphereGeometry(18,16,16),new THREE.MeshStandardMaterial({color:0xff4466,emissive:0xff4466,emissiveIntensity:.8,transparent:true,opacity:.75}));
+    ikTargetMesh.position.copy(tpos);iksce.add(ikTargetMesh);
+    // Cruz en el objetivo
+    const crossMat=new THREE.LineBasicMaterial({color:0xff4466});
+    [[[-40,0,0],[40,0,0]],[[0,-40,0],[0,40,0]],[[0,0,-40],[0,0,40]]].forEach(([a,b])=>{
+      const g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]);
+      const l=new THREE.Line(g2,crossMat);l.position.copy(tpos);iksce.add(l);
+    });
+    // Línea del TCP al objetivo
+    const lineG=new THREE.BufferGeometry().setFromPoints([tcp,tpos]);
+    const lineM=new THREE.LineDashedMaterial({color:0xffaa00,dashSize:15,gapSize:8});
+    const line=new THREE.Line(lineG,lineM);line.computeLineDistances();ikg.add(line);
+  }
+
+  // HUD
+  const tcpReal=pts[pts.length-1];
+  ['ik-hx','ik-hy','ik-hz'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=tcpReal[i].toFixed(1);});
+}
+
+let ikFr=0;
+function animIk(){
+  requestAnimationFrame(animIk);
+  ikFr++;
+  if(ikTargetMesh){ikTargetMesh.material.opacity=.5+.3*Math.sin(ikFr*.08);ikTargetMesh.scale.setScalar(1+.06*Math.sin(ikFr*.08));}
+  ikpl.position.x=300*Math.cos(ikFr*.004);ikpl.position.z=300*Math.sin(ikFr*.004);
+  ikrndr.render(iksce,ikcam);
+}
+
+// INIT IK
+buildIkTabs();buildIkPresets();
+updIkcam();onIkRz();animIk();
+ikRenderRobot(ROBOTS['kuka'].joints.map(j=>j.init));
+
+// INIT
+buildTblTabs(); renderTbl();
+buildSimTabs(); loadSim('kuka');
+diagLoad('kuka',document.getElementById('dt-kuka'));
+animShow('all');
+updCam(); onRz(); anim3();
+const SECS2=['hero','teoria','tabla','sim','ik'];
+window.removeEventListener('scroll',window._navScroll);
+window._navScroll=()=>{let cur='hero';SECS2.forEach(id=>{const e=document.getElementById(id);if(e&&window.scrollY>=e.offsetTop-80)cur=id;});document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.getAttribute('onclick')?.includes(cur)));};
+window.addEventListener('scroll',window._navScroll);
+</script>
+
+<footer>
+  Denavit-Hartenberg Interactivo · Robótica &amp; Cinemática Directa
+  <br>
+  <span class="footer-author">✦ by Valeria Pantoja</span>
+</footer>
+
+</body>
+</html>
